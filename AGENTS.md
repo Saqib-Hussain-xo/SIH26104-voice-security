@@ -1,69 +1,158 @@
-﻿# AGENTS.md - SIH26104 Voice Security Platform
+# AGENTS.md - SIH26104 Voice Security Platform
 
-## Project Overview
-Smart India Hackathon 2026 Problem Statement SIH26104: "AI-Powered Real-Time Detection and Prevention of Voice Cloning Impersonation Attacks." Building an MVP for voice spoof/deepfake detection.
+## Project Status
 
-**Deadline: August 30, 2026** - prioritize simple working MVP.
+This repository contains a working MVP for **Smart India Hackathon 2026 Problem Statement SIH26104: "AI-Powered Real-Time Detection and Prevention of Voice Cloning Impersonation Attacks."**
 
-## Tech Stack (Planned)
-- **Backend**: Python + FastAPI
-- **Frontend**: React + Vite + TypeScript
-- **Models**: Pretrained (AASIST for spoof detection, ECAPA-TDNN/WavLM for speaker verification)
-- **No heavy infra**: No microservices, K8s, Redis, Kafka, Celery
+The backend, pretrained model integrations, frontend dashboard, evaluation routine and automated tests are implemented. Treat the repository as an active working project, not an empty scaffold.
+
+## Current Tech Stack
+
+- **Backend:** Python + FastAPI + Uvicorn
+- **ML runtime:** PyTorch / TorchAudio
+- **Spoof detection:** AASIST (`SpeechAntiSpoofingBenchmarks/AASIST`)
+- **Speaker verification:** ECAPA-TDNN (`speechbrain/spkrec-ecapa-voxceleb`)
+- **Audio processing:** SoundFile + PyTorch resampling/normalization
+- **Persistence:** SQLite + aiosqlite
+- **Logging:** structlog
+- **Frontend:** React 18 + Vite + TypeScript + Lucide React
+- **Evaluation:** Python evaluation routine under `evaluation/`
+- **Tests:** pytest + pytest-asyncio + httpx
 
 ## Repository Structure
-`
-/ (root)
-├── backend/      # FastAPI service (empty, planned)
-├── frontend/     # React + Vite + TS (empty, planned)
-├── models/       # Model integration assets (empty, planned)
-├── evaluation/   # Evaluation scripts (empty, planned)
-├── docs/         # Architecture, API, evaluation protocol
-├── scripts/      # Utility scripts (empty, planned)
-├── .env.example  # Environment template
-└── DECISIONS.md  # Architecture decisions
-`
+
+```text
+/
+├── backend/
+│   ├── app/
+│   │   ├── api/              # FastAPI routes
+│   │   ├── models/           # AASIST + ECAPA-TDNN integrations
+│   │   ├── schemas/          # API schemas
+│   │   ├── services/         # Audio, database and risk engine
+│   │   └── utils/             # Logging
+│   ├── tests/                # Backend integration/regression tests
+│   ├── requirements.txt
+│   └── README.md
+├── frontend/                 # React + Vite + TypeScript dashboard
+├── models/                   # Model asset documentation; runtime integrations live in backend/app/models/
+├── evaluation/               # Evaluation routine and documentation
+├── docs/                     # Architecture, API, demo, evidence and limitations
+├── evidence/                 # Captured validation outputs
+├── scripts/                  # Reserved project utility-script directory
+├── .env.example
+├── DECISIONS.md
+├── KNOWN_LIMITATIONS.md
+└── README.md
+```
 
 ## Key Constraints
-- Single repository for easier student team collaboration
-- Pretrained-model-first approach (no from-scratch training)
-- Does NOT intercept cellular calls
-- Model scores ≠ calibrated fraud probabilities
-- Multilingual support limited initially
 
-## Development Commands (when implemented)
-`ash
-# Backend (from backend/)
-# python -m venv .venv && source .venv/bin/activate
-# pip install -r requirements.txt
-# uvicorn main:app --reload
-
-# Frontend (from frontend/)
-# npm install
-# npm run dev
-`
-
-## Environment Variables
-Copy .env.example to .env and fill values:
-- APP_ENV=development
-- BACKEND_HOST=127.0.0.1
-- BACKEND_PORT=8000
-- FRONTEND_PORT=5173
+- Keep the architecture simple and suitable for local demonstration.
+- Use pretrained models rather than adding unnecessary from-scratch training infrastructure.
+- Do **not** claim universal detection accuracy from a few samples.
+- Model scores are evidence/signals, not calibrated fraud probabilities.
+- The current system analyzes supplied files and browser microphone recordings.
+- The system does **not** intercept ordinary GSM/PSTN cellular calls or operate at the baseband/network layer.
+- Keep generated databases, enrollment embeddings, temporary audio, model checkpoints, virtual environments and Node modules out of Git.
 
 ## Architecture Flow
-Audio Input → Preprocessing → Spoof Detection → Speaker Verification (optional) → Risk Engine → Backend API → Frontend Dashboard → Database/Reporting
 
-## Documentation References
-- docs/ARCHITECTURE.md - System architecture diagram
-- docs/API.md - API contract (planned)
-- docs/EVALUATION_PROTOCOL.md - Evaluation criteria (languages, accents, noise, compression)
-- docs/DATA_SOURCES.md - Data licensing requirements
-- DECISIONS.md - Architecture decisions
-- KNOWN_LIMITATIONS.md - Current scope boundaries
+```text
+Audio Input
+  → Audio Preprocessing
+  → AASIST Spoof Detection
+  → optional ECAPA-TDNN Speaker Verification
+  → Explainable Risk Engine
+  → FastAPI API
+  → React Dashboard
+  → SQLite Reporting
+```
 
-## Implementation Priority
-1. Backend foundations + FastAPI setup
-2. Pretrained model inference pipeline integration
-3. API contract definition
-4. Frontend dashboard structure
-5. Evaluation workflow implementation
+## Active API Endpoints
+
+Under `/api/v1`:
+
+- `GET /health`
+- `GET /models/status`
+- `POST /analyze`
+- `POST /enroll`
+- `POST /speakers/{speaker_id}/verify`
+- `GET /reports`
+- `GET /reports/{request_id}`
+
+FastAPI documentation is available at `/docs`, `/redoc` and `/openapi.json` when the server is running.
+
+## Development Commands
+
+### Backend
+
+From `backend/`:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+### Backend tests
+
+```powershell
+.\.venv\Scripts\pytest.exe -v
+```
+
+### Frontend
+
+From `frontend/`:
+
+```powershell
+npm install
+npm run dev
+```
+
+Production build:
+
+```powershell
+npm run build
+```
+
+### Evaluation
+
+From `evaluation/`:
+
+```powershell
+..\backend\.venv\Scripts\python.exe evaluate_dataset.py
+```
+
+## Environment
+
+Use `.env.example` as the environment template. Do not commit real `.env` files or credentials.
+
+## Model Assets
+
+Model checkpoints are downloaded/cached as required and are not committed to Git. Speaker enrollment embeddings are generated locally under `backend/data/enrollments/` and are ignored by Git.
+
+## Development Guidance
+
+Before modifying the application:
+
+1. Read the relevant current code and README for the component.
+2. Preserve the existing FastAPI/React architecture unless a change is necessary.
+3. Run the backend tests after backend changes.
+4. Run `npm run build` after frontend changes.
+5. Do not replace real model inference with hardcoded/demo scores.
+6. Keep security and scope claims accurate.
+7. Update documentation when behavior or API contracts change.
+
+## Validation Baseline
+
+The current documented validation baseline is:
+
+- Backend integration/regression suite: **10/10 passing**.
+- Frontend production build: **0 errors**.
+- Real AASIST spoof/genuine inference exercised.
+- Real ECAPA-TDNN speaker match and mismatch exercised.
+- Browser microphone WAV analysis exercised.
+- SQLite report persistence exercised.
+
+The validation baseline is evidence of an operational MVP, not a guarantee that every possible audio sample or attack will be classified correctly.
