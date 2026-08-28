@@ -195,7 +195,7 @@ The application retrieves pretrained model checkpoints from Hugging Face when th
 
 The microphone workflow uses browser audio capabilities to capture the user's microphone input and encode it as a valid 16-bit PCM WAV payload before sending it to the backend.
 
-## 7. Running the Project on a New Laptop
+## 7. Running the Project on a New Device
 
 The repository is designed to be cloned and run locally. Model checkpoints, virtual environments, Node modules, generated databases, and temporary audio are not required to be committed to Git.
 
