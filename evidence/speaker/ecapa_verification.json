@@ -1,0 +1,11 @@
+{
+  "speaker_id": "val_user_001",
+  "verified": true,
+  "similarity": 1.0,
+  "threshold": 0.65,
+  "model_name": "ECAPA-TDNN",
+  "model_version": "VoxCeleb1+2 (SpeechBrain)",
+  "inference_time_ms": 320.53,
+  "available": true,
+  "error": null
+}

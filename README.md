@@ -4,63 +4,47 @@
 This repository is for **Smart India Hackathon 2026 Problem Statement SIH26104**:
 **"AI-Powered Real-Time Detection and Prevention of Voice Cloning Impersonation Attacks."**
 
-## Project Intent
-We are building a beginner-friendly but technically credible MVP focused on detecting potential voice-cloning impersonation risk from audio inputs.
-
-## Planned MVP Architecture
+## Architecture
 ```text
-audio input
-→ audio preprocessing
-→ pretrained voice spoof detection
-→ optional pretrained speaker verification
+audio input (file upload or browser mic recording)
+→ audio preprocessing (soundfile, 16kHz resample, mono conversion, RMS normalization)
+→ pretrained AASIST voice spoof detection (ASVspoof2019 LA)
+→ optional pretrained ECAPA-TDNN speaker verification (SpeechBrain VoxCeleb)
 → explainable risk engine
-→ backend API
-→ frontend dashboard
-→ minimal database/reporting
+→ FastAPI backend API
+→ React + Vite + TypeScript frontend dashboard
+→ SQLite report persistence (aiosqlite)
 ```
 
-### MVP Input Methods (Planned)
-- Uploaded audio files.
-- Browser microphone recording, if practical within MVP constraints.
+## Implemented Components
+- **Backend**: FastAPI + Uvicorn server (`backend/app/main.py`)
+- **Spoof Detector**: Pretrained AASIST model (`backend/app/models/spoof_detector.py`)
+- **Speaker Verifier**: Pretrained ECAPA-TDNN (`backend/app/models/speaker_verifier.py`)
+- **Risk Engine**: Multi-factor score normalization & explanation generator (`backend/app/services/risk_engine.py`)
+- **Database**: SQLite async database (`backend/data/analysis.db`)
+- **Frontend Dashboard**: React 18 + Vite + TypeScript + Lucide icons (`frontend/src/App.tsx`)
+- **Test Suite**: 8 end-to-end integration tests (`backend/tests/test_api.py`)
 
-### Scope Clarification
-- **The MVP does NOT intercept ordinary cellular phone calls.**
-- Future versions may integrate with **WebRTC, SIP/PBX, enterprise communication systems, and telecom infrastructure** where appropriate.
+## Running the Project
 
-### Model Strategy (Planned)
-- Use **pretrained models** rather than training large speech models from scratch.
-- Candidate model categories:
-  - Pretrained voice spoof/deepfake detector (for example, AASIST).
-  - Pretrained speaker verification model (for example, ECAPA-TDNN or WavLM speaker-verification models).
-- These models are **not integrated yet** in this initial setup.
-
-## Status
-### Planned
-- Backend service in Python + FastAPI.
-- Frontend dashboard in React + Vite + TypeScript.
-- Evaluation workflow for multilingual and real-world robustness.
-
-### Currently Implemented
-- Initial repository structure.
-- Foundation documentation and architecture planning artifacts.
-
-### Future Work
-- Implement backend and frontend code.
-- Integrate pretrained model inference pipeline.
-- Define API contract and evaluation benchmarks.
-
-## Repository Structure
-```text
-/
-├── README.md
-├── DECISIONS.md
-├── KNOWN_LIMITATIONS.md
-├── .gitignore
-├── .env.example
-├── backend/
-├── frontend/
-├── models/
-├── evaluation/
-├── docs/
-└── scripts/
+### 1. Backend Server
+```bash
+cd backend
+.\.venv\Scripts\activate
+uvicorn app.main:app --reload --port 8000
 ```
+Interactive API Docs available at `http://127.0.0.1:8000/docs`.
+
+### 2. Run Backend Tests
+```bash
+cd backend
+.\.venv\Scripts\pytest.exe -v
+```
+
+### 3. Frontend Application
+```bash
+cd frontend
+npm install
+npm run dev
+```
+Dashboard available at `http://localhost:5173`.

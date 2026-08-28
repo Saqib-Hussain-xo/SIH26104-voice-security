@@ -1,0 +1,16 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.7, pytest-8.3.3, pluggy-1.6.0
+rootdir: C:\Users\saqib\Documents\GitHub\SIH26104-voice-security\backend
+plugins: anyio-4.14.2, asyncio-0.24.0
+asyncio: mode=Mode.STRICT
+
+tests/test_api.py::test_health_check PASSED                              [ 12%]
+tests/test_api.py::test_models_status PASSED                             [ 25%]
+tests/test_api.py::test_analyze_audio_success PASSED                     [ 37%]
+tests/test_api.py::test_analyze_no_file PASSED                           [ 50%]
+tests/test_api.py::test_list_reports PASSED                              [ 62%]
+tests/test_api.py::test_get_report_by_id PASSED                          [ 75%]
+tests/test_api.py::test_get_report_not_found PASSED                      [ 87%]
+tests/test_api.py::test_speaker_enroll_and_verify PASSED                 [100%]
+
+====================== 8 passed in 15.20s =======================

@@ -1,0 +1,55 @@
+{
+  "request_id": "9e40efe1-dc62-4501-888b-351def828a93",
+  "timestamp": "2026-08-28 13:54:23",
+  "spoof_detection": {
+    "model_name": "AASIST",
+    "model_version": "ASVspoof2019-LA",
+    "raw_score": -0.6989626288414001,
+    "score_type": "bona_fide_logit",
+    "interpretation": "Bona fide logit: -0.6990, Spoof logit: -0.2442, Bona fide probability (softmax): 0.3882. Higher score = more likely genuine human speech. Threshold at 0.0 (logit) or ~0.5 (probability) for equal error rate on ASVspoof2019 LA.",
+    "label": "spoof",
+    "inference_time_ms": 535.04,
+    "available": true,
+    "error": null
+  },
+  "speaker_verification": {
+    "enabled": false,
+    "model_name": null,
+    "model_version": null,
+    "similarity": null,
+    "threshold": null,
+    "verified": null,
+    "inference_time_ms": null,
+    "available": false,
+    "error": null
+  },
+  "risk_assessment": {
+    "risk_score": 0.36,
+    "risk_level": "MEDIUM",
+    "confidence": 0.55,
+    "reasons": [
+      {
+        "factor": "spoof_detection",
+        "status": "uncertain",
+        "reason": "Moderate bona fide score (-0.699), cannot confidently classify",
+        "impact": "increases_uncertainty",
+        "value": -0.6989626288414001
+      },
+      {
+        "factor": "speaker_verification",
+        "status": "skipped",
+        "reason": "No enrolled speaker or model unavailable",
+        "impact": "neutral"
+      },
+      {
+        "factor": "audio_quality",
+        "status": "good",
+        "reason": "Audio quality acceptable (RMS=0.1000)",
+        "impact": "neutral",
+        "value": 0.10000001639127731
+      }
+    ],
+    "recommended_action": "CAUTION: Uncertain result. Consider additional verification steps."
+  },
+  "processing_time_ms": 540.93
+}

@@ -1,0 +1,6 @@
+{
+  "status": "healthy",
+  "spoof_detector_loaded": true,
+  "speaker_verifier_loaded": true,
+  "version": "0.1.0"
+}

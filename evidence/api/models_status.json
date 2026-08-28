@@ -1,0 +1,15 @@
+{
+  "spoof_detector": {
+    "model_name": "AASIST",
+    "model_version": "ASVspoof2019-LA",
+    "sample_rate": 16000,
+    "input_format": "raw waveform, mono, 16kHz, 64600 samples (4.04s)",
+    "loaded": true
+  },
+  "speaker_verifier": {
+    "model_name": "ECAPA-TDNN",
+    "model_version": "VoxCeleb1+2 (SpeechBrain)",
+    "embedding_dim": 192,
+    "loaded": true
+  }
+}

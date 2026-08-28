@@ -8,12 +8,19 @@ venv/
 node_modules/
 dist/
 
+# Application Data & Temporary Audio
+backend/data/*.db
+backend/temp/*
+!backend/temp/.gitkeep
+backend/data/enrollments/*.npy
+backend/pretrained_models/
+
 # Environment
 .env
 .env.*
 !.env.example
 
-# OS/editor
+# OS / Editor
 .DS_Store
 .vscode/
 .idea/

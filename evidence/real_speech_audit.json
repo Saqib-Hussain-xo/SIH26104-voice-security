@@ -1,0 +1,53 @@
+[
+  {
+    "sample": "real_speech_david_2.wav",
+    "description": "Same Speaker David (Different sentence: 'Please verify my identity...')",
+    "ground_truth": "Same Speaker (David)",
+    "similarity": 0.8253,
+    "threshold": 0.65,
+    "verified": true,
+    "processing_time_ms": 614.96
+  },
+  {
+    "sample": "real_speech_zira_1.wav",
+    "description": "Different Female Speaker Zira ('This is a completely different female speaker...')",
+    "ground_truth": "Different Speaker (Female Zira)",
+    "similarity": 0.1639,
+    "threshold": 0.65,
+    "verified": false,
+    "processing_time_ms": 588.56
+  },
+  {
+    "sample": "real_speech_david_1.wav",
+    "description": "Genuine Spoken Acoustic Speech Sample (David)",
+    "ground_truth": "genuine",
+    "model_raw_score": 0.07708936929702759,
+    "model_label": "bona_fide",
+    "risk_score": 0.22,
+    "risk_level": "LOW",
+    "action": "ACCEPT: Audio appears genuine. Standard verification sufficient.",
+    "processing_time_ms": 510.91
+  },
+  {
+    "sample": "test_audio.wav",
+    "description": "ASVspoof2019 LA Benchmark Evaluation Sample",
+    "ground_truth": "spoof",
+    "model_raw_score": -0.6989626288414001,
+    "model_label": "spoof",
+    "risk_score": 0.85,
+    "risk_level": "CRITICAL",
+    "action": "REJECT: High confidence voice cloning/spoofing detected. Do not trust this audio.",
+    "processing_time_ms": 411.09
+  },
+  {
+    "sample": "indian_english_sample.wav",
+    "description": "Indian English Regional Context Phrase ('Namaste, SIH test sample...')",
+    "ground_truth": "genuine",
+    "model_raw_score": 0.01326996460556984,
+    "model_label": "bona_fide",
+    "risk_score": 0.22,
+    "risk_level": "LOW",
+    "action": "ACCEPT: Audio appears genuine. Standard verification sufficient.",
+    "processing_time_ms": 439.03
+  }
+]
