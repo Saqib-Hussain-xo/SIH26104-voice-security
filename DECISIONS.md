@@ -3,9 +3,6 @@
 ## Context
 This project targets SIH 2026 PS SIH26104 and must produce a working, credible MVP quickly.
 
-## Delivery Priority
-- We are prioritizing a simple, working MVP because the internal hackathon deadline is **August 30, 2026**.
-
 ## Decisions
 1. **Single-repository MVP foundation first**
    - Keep backend, frontend, models, evaluation, and docs in one repository.
