@@ -11,6 +11,22 @@ logger = get_logger(__name__)
 ENROLLMENT_DIR = "data/enrollments"
 os.makedirs(ENROLLMENT_DIR, exist_ok=True)
 
+# Pre-import SpeechBrain at module load time to prevent circular import issues inside async loops
+SPEECHBRAIN_AVAILABLE = False
+EncoderClassifier = None
+SpeakerRecognition = None
+
+try:
+    try:
+        from speechbrain.inference.speaker import EncoderClassifier, SpeakerRecognition
+        SPEECHBRAIN_AVAILABLE = True
+    except ImportError:
+        from speechbrain.pretrained import EncoderClassifier, SpeakerRecognition
+        SPEECHBRAIN_AVAILABLE = True
+except Exception as e:
+    logger.warning("SpeechBrain pre-import warning", error=str(e))
+    SPEECHBRAIN_AVAILABLE = False
+
 
 class SpeakerVerificationError(Exception):
     pass
@@ -69,28 +85,30 @@ class SpeakerVerifier:
         
         try:
             logger.info("Lazy-loading speaker verification model (SpeechBrain ECAPA-TDNN)")
-            try:
-                from speechbrain.inference.speaker import EncoderClassifier, SpeakerRecognition
-            except ImportError:
-                from speechbrain.pretrained import EncoderClassifier, SpeakerRecognition
+            if not SPEECHBRAIN_AVAILABLE or EncoderClassifier is None:
+                raise ImportError("SpeechBrain package unavailable or failed to initialize")
 
             self._classifier = EncoderClassifier.from_hparams(
                 source="speechbrain/spkrec-ecapa-voxceleb",
                 run_opts={"device": "cpu"},
             )
 
-            self._verification = SpeakerRecognition.from_hparams(
-                source="speechbrain/spkrec-ecapa-voxceleb",
-                run_opts={"device": "cpu"},
-            )
+            if SpeakerRecognition is not None:
+                try:
+                    self._verification = SpeakerRecognition.from_hparams(
+                        source="speechbrain/spkrec-ecapa-voxceleb",
+                        run_opts={"device": "cpu"},
+                    )
+                except Exception:
+                    self._verification = self._classifier
 
             self.is_loaded = True
             self.model_version = "VoxCeleb1+2 (SpeechBrain)"
             logger.info("Speaker verification model loaded successfully")
             return True
 
-        except ImportError:
-            error_msg = "SpeechBrain not installed"
+        except ImportError as e:
+            error_msg = f"SpeechBrain not installed: {str(e)}"
             self._load_error = error_msg
             logger.warning("Speaker verification unavailable: SpeechBrain not installed")
             return False
@@ -145,7 +163,7 @@ class SpeakerVerifier:
     async def verify(self, waveform: np.ndarray, speaker_id: str) -> SpeakerVerificationResult:
         loaded = await self._ensure_loaded()
         
-        if not loaded or self._classifier is None or self._verification is None:
+        if not loaded or self._classifier is None:
             error = self._load_error or "Speaker verification model not loaded"
             return SpeakerVerificationResult(
                 model_name=self.model_name,

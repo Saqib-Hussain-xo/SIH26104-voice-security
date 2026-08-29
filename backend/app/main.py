@@ -11,20 +11,24 @@ from app.utils.logging import configure_logging, get_logger
 from app.services.database import init_db, close_db
 from app.models.spoof_detector import SpoofDetector
 from app.models.speaker_verifier import SpeakerVerifier
+from app.models.asr_transcriber import ASRTranscriber
+from app.services.semantic_analyzer import SemanticAnalyzer
 from app.api.routes import router as api_router
 
 logger = get_logger(__name__)
 
 spoof_detector: SpoofDetector | None = None
 speaker_verifier: SpeakerVerifier | None = None
+asr_transcriber: ASRTranscriber | None = None
+semantic_analyzer: SemanticAnalyzer | None = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global spoof_detector, speaker_verifier
+    global spoof_detector, speaker_verifier, asr_transcriber, semantic_analyzer
 
     configure_logging()
-    logger.info("Starting SIH26104 Voice Security Platform", version="0.1.0")
+    logger.info("Starting SIH26104 Voice Security Platform", version="0.2.0")
 
     await init_db()
 
@@ -42,6 +46,19 @@ async def lifespan(app: FastAPI):
     await speaker_verifier.load()
     logger.info("Speaker verification initialized")
 
+    try:
+        logger.info("Initializing pretrained ASR model (openai/whisper-tiny)")
+        asr_transcriber = ASRTranscriber(model_id="openai/whisper-tiny")
+        await asr_transcriber.load()
+        logger.info("ASR model loaded successfully")
+    except Exception as e:
+        logger.error("Failed to load ASR model", error=str(e))
+        asr_transcriber = None
+
+    logger.info("Initializing Semantic Threat Analyzer")
+    semantic_analyzer = SemanticAnalyzer()
+    logger.info("Semantic Threat Analyzer initialized")
+
     yield
 
     logger.info("Shutting down")
@@ -50,8 +67,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="SIH26104 Voice Security Platform",
-    description="AI-Powered Real-Time Detection and Prevention of Voice Cloning Impersonation Attacks",
-    version="0.1.0",
+    description="AI-Powered Real-Time Detection and Prevention of Voice Cloning Impersonation & Social Engineering Attacks",
+    version="0.2.0",
     lifespan=lifespan,
 )
 
@@ -96,8 +113,8 @@ app.include_router(api_router)
 async def root():
     return {
         "name": "SIH26104 Voice Security Platform",
-        "version": "0.1.0",
-        "description": "AI-Powered Real-Time Detection and Prevention of Voice Cloning Impersonation Attacks",
+        "version": "0.2.0",
+        "description": "AI-Powered Real-Time Detection and Prevention of Voice Cloning Impersonation & Social Engineering Attacks",
         "docs": "/docs",
         "redoc": "/redoc",
         "openapi": "/openapi.json",

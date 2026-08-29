@@ -22,6 +22,24 @@ export interface SpeakerVerificationResult {
   error?: string | null;
 }
 
+export interface ThreatIndicator {
+  indicator_type: string;
+  category: string;
+  weight: number;
+  matched_terms: string[];
+  snippet: string;
+}
+
+export interface SemanticThreatResult {
+  transcript: string;
+  semantic_risk_score: number;
+  threat_level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  detected_indicators: ThreatIndicator[];
+  recommended_action: string;
+  asr_model?: string;
+  inference_time_ms?: number;
+}
+
 export interface RiskReason {
   factor: string;
   status: string;
@@ -34,7 +52,10 @@ export interface RiskAssessment {
   risk_score: number;
   risk_level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   confidence: number;
+  acoustic_risk_score?: number;
+  semantic_risk_score?: number;
   reasons: RiskReason[];
+  explanation?: string;
   recommended_action: string;
 }
 
@@ -43,6 +64,7 @@ export interface AnalyzeResponse {
   timestamp: string;
   spoof_detection: SpoofDetectionResult;
   speaker_verification: SpeakerVerificationResult;
+  semantic_threat_analysis?: SemanticThreatResult;
   risk_assessment: RiskAssessment;
   processing_time_ms: number;
 }
@@ -51,6 +73,8 @@ export interface HealthStatus {
   status: string;
   spoof_detector_loaded: boolean;
   speaker_verifier_loaded: boolean;
+  asr_transcriber_loaded?: boolean;
+  semantic_analyzer_loaded?: boolean;
   version: string;
 }
 
@@ -70,6 +94,14 @@ export interface ModelStatus {
     loaded: boolean;
     error?: string;
   };
+  asr_transcriber?: {
+    model_name?: string;
+    loaded: boolean;
+  };
+  semantic_analyzer?: {
+    loaded: boolean;
+    categories_tracked?: number;
+  };
 }
 
 export interface ReportSummary {
@@ -81,6 +113,9 @@ export interface ReportSummary {
   spoof_label: string;
   risk_level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   risk_score: number;
+  transcript?: string;
+  semantic_risk_score?: number;
+  threat_level?: string;
 }
 
 export interface ReportListResponse {

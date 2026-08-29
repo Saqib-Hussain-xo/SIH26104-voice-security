@@ -12,6 +12,8 @@ class RiskAssessment:
     score: float
     level: str
     confidence: float
+    acoustic_risk_score: float
+    semantic_risk_score: float
     reasons: List[Dict[str, Any]]
     explanation: str
     recommended_action: str
@@ -19,9 +21,10 @@ class RiskAssessment:
 
 class RiskEngine:
     def __init__(self):
-        self.spoof_weight = 0.7
-        self.speaker_weight = 0.3
-        self.audio_quality_weight = 0.1
+        self.spoof_weight = 0.50
+        self.speaker_weight = 0.20
+        self.semantic_weight = 0.25
+        self.audio_quality_weight = 0.05
 
         self.speaker_high_threshold = 0.8
         self.speaker_medium_threshold = 0.6
@@ -30,7 +33,7 @@ class RiskEngine:
         self.quality_max_rms = 0.8
 
         self.confidence_base = 0.9
-        self.confidence_penalty_no_speaker = 0.15
+        self.confidence_penalty_no_speaker = 0.1
         self.confidence_penalty_poor_quality = 0.1
 
     def assess(
@@ -38,39 +41,65 @@ class RiskEngine:
         spoof_result: SpoofDetectionResult,
         speaker_result: Optional[SpeakerVerificationResult],
         audio_quality: Dict[str, Any],
+        semantic_result: Optional[Dict[str, Any]] = None,
     ) -> RiskAssessment:
         reasons = []
-        risk_score = 0.0
+        acoustic_score_accum = 0.0
 
+        # 1. Acoustic Spoof Detection
         spoof_factor = self._assess_spoof(spoof_result, reasons)
-        risk_score += spoof_factor * self.spoof_weight
+        acoustic_score_accum += spoof_factor * self.spoof_weight
 
+        # 2. Speaker Verification (Optional)
         speaker_factor = 0.0
         if speaker_result and speaker_result.available:
             speaker_factor = self._assess_speaker(speaker_result, spoof_result.label if spoof_result else "unknown", reasons)
-            risk_score += speaker_factor * self.speaker_weight
+            acoustic_score_accum += speaker_factor * self.speaker_weight
         else:
             reasons.append({
                 "factor": "speaker_verification",
                 "status": "skipped",
-                "reason": "No enrolled speaker or model unavailable",
+                "reason": "No enrolled speaker provided (unknown caller)",
                 "impact": "neutral",
             })
 
+        # 3. Audio Quality
         quality_factor = self._assess_audio_quality(audio_quality, reasons)
-        risk_score += quality_factor * self.audio_quality_weight
+        acoustic_score_accum += quality_factor * self.audio_quality_weight
 
-        risk_score = max(0.0, min(1.0, risk_score + 0.5))
+        # Normalize Acoustic Risk Score (0.0 to 1.0)
+        acoustic_risk_score = max(0.0, min(1.0, acoustic_score_accum + 0.5))
 
-        level = self._score_to_level(risk_score)
-        confidence = self._calculate_confidence(spoof_result, speaker_result, audio_quality, reasons)
-        explanation = self._generate_explanation(reasons, risk_score, level)
-        recommended_action = self._recommend_action(level, confidence, reasons)
+        # 4. Semantic Threat Analysis
+        semantic_risk_score = 0.0
+        if semantic_result and semantic_result.get("detected_indicators"):
+            semantic_risk_score = semantic_result.get("semantic_risk_score", 0.0)
+            for ind in semantic_result["detected_indicators"]:
+                reasons.append({
+                    "factor": "semantic_threat",
+                    "status": ind["indicator_type"],
+                    "reason": f"Social engineering threat indicator: {ind['category']} ({', '.join(ind['matched_terms'])})",
+                    "impact": "increases_risk",
+                    "value": ind["weight"],
+                })
+
+        # Combine Acoustic Risk + Semantic Risk cleanly without blind multiplication
+        overall_risk_score = max(acoustic_risk_score, semantic_risk_score)
+        if acoustic_risk_score > 0.4 and semantic_risk_score > 0.4:
+            # Dual threat (e.g. synthetic voice + OTP/Financial scam request)
+            overall_risk_score = min(1.0, max(acoustic_risk_score, semantic_risk_score) + 0.2)
+
+        level = self._score_to_level(overall_risk_score)
+        confidence = self._calculate_confidence(spoof_result, speaker_result, audio_quality, semantic_result)
+        explanation = self._generate_explanation(reasons, overall_risk_score, acoustic_risk_score, semantic_risk_score, level)
+        recommended_action = self._recommend_action(level, confidence, reasons, semantic_result)
 
         return RiskAssessment(
-            score=round(risk_score, 4),
+            score=round(overall_risk_score, 4),
             level=level,
             confidence=round(confidence, 4),
+            acoustic_risk_score=round(acoustic_risk_score, 4),
+            semantic_risk_score=round(semantic_risk_score, 4),
             reasons=reasons,
             explanation=explanation,
             recommended_action=recommended_action,
@@ -87,7 +116,7 @@ class RiskEngine:
             })
             return 0.0
 
-        raw_score = result.raw_score  # bona_fide_logit
+        raw_score = result.raw_score
 
         if result.label == "bona_fide":
             if raw_score >= 1.0:
@@ -109,7 +138,6 @@ class RiskEngine:
                 })
                 return -0.4
         else:
-            # result.label == "spoof" (bona_fide_logit < spoof_logit)
             if raw_score <= -1.0:
                 reasons.append({
                     "factor": "spoof_detection",
@@ -232,7 +260,7 @@ class RiskEngine:
         spoof_result: SpoofDetectionResult,
         speaker_result: Optional[SpeakerVerificationResult],
         audio_quality: Dict[str, Any],
-        reasons: List[Dict],
+        semantic_result: Optional[Dict[str, Any]],
     ) -> float:
         confidence = self.confidence_base
 
@@ -260,36 +288,41 @@ class RiskEngine:
     def _generate_explanation(
         self,
         reasons: List[Dict],
-        risk_score: float,
+        overall_risk_score: float,
+        acoustic_risk_score: float,
+        semantic_risk_score: float,
         level: str,
     ) -> str:
-        factors = [r for r in reasons if r["impact"] != "neutral"]
-        if not factors:
-            return f"Risk level: {level}. No significant risk factors detected."
+        parts = [f"Overall Risk: {level} ({overall_risk_score:.2f}) [Acoustic Risk: {acoustic_risk_score:.2f}, Semantic Risk: {semantic_risk_score:.2f}]."]
 
-        risk_increasing = [r for r in factors if "increases" in r["impact"]]
-        risk_decreasing = [r for r in factors if "decreases" in r["impact"]]
-        uncertainty = [r for r in factors if "uncertainty" in r["impact"]]
-
-        parts = [f"Risk level: {level} (score: {risk_score:.2f})."]
+        risk_increasing = [r for r in reasons if "increases" in r["impact"]]
+        risk_decreasing = [r for r in reasons if "decreases" in r["impact"]]
 
         if risk_increasing:
-            parts.append("Risk-increasing factors: " + "; ".join(r["reason"] for r in risk_increasing))
+            parts.append("Threat Signals: " + "; ".join(r["reason"] for r in risk_increasing))
 
         if risk_decreasing:
-            parts.append("Risk-decreasing factors: " + "; ".join(r["reason"] for r in risk_decreasing))
-
-        if uncertainty:
-            parts.append("Uncertainty factors: " + "; ".join(r["reason"] for r in uncertainty))
+            parts.append("Mitigating Factors: " + "; ".join(r["reason"] for r in risk_decreasing))
 
         return " ".join(parts)
 
-    def _recommend_action(self, level: str, confidence: float, reasons: List[Dict]) -> str:
+    def _recommend_action(
+        self,
+        level: str,
+        confidence: float,
+        reasons: List[Dict],
+        semantic_result: Optional[Dict[str, Any]],
+    ) -> str:
+        if semantic_result and semantic_result.get("detected_indicators"):
+            threat_rec = semantic_result.get("recommended_action")
+            if level in ["CRITICAL", "HIGH"]:
+                return f"REJECT/ALERT: {threat_rec}"
+
         if level == "CRITICAL":
-            return "REJECT: High confidence voice cloning/spoofing detected. Do not trust this audio."
+            return "REJECT: High confidence voice cloning/spoofing or social engineering scam detected."
         elif level == "HIGH":
-            return "REVIEW: Likely spoofed audio. Require additional verification before trusting."
+            return "REVIEW: Suspicious audio or social engineering threat indicators detected."
         elif level == "MEDIUM":
-            return "CAUTION: Uncertain result. Consider additional verification steps."
+            return "CAUTION: Moderate risk detected. Additional verification recommended."
         else:
-            return "ACCEPT: Audio appears genuine. Standard verification sufficient."
+            return "ACCEPT: Audio and speech content appear genuine and safe."
