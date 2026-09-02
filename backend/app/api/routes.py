@@ -32,19 +32,21 @@ risk_engine = RiskEngine()
 
 @router.get("/health")
 async def health_check():
-    from app.main import spoof_detector, speaker_verifier
+    from app.main import spoof_detector, speaker_verifier, asr_transcriber, semantic_analyzer
 
     return JSONResponse({
         "status": "healthy" if spoof_detector and spoof_detector.is_loaded else "degraded",
         "spoof_detector_loaded": spoof_detector.is_loaded if spoof_detector else False,
         "speaker_verifier_loaded": speaker_verifier.is_loaded if speaker_verifier else False,
-        "version": "0.1.0",
+        "asr_transcriber_loaded": asr_transcriber.loaded if asr_transcriber else False,
+        "semantic_analyzer_loaded": semantic_analyzer is not None,
+        "version": "0.2.0",
     })
 
 
 @router.get("/models/status")
 async def models_status():
-    from app.main import spoof_detector, speaker_verifier
+    from app.main import spoof_detector, speaker_verifier, asr_transcriber, semantic_analyzer
 
     spoof_info = None
     if spoof_detector and spoof_detector.is_loaded:
@@ -64,9 +66,21 @@ async def models_status():
         "error": "Speaker verifier not initialized",
     }
 
+    asr_info = {
+        "model_name": asr_transcriber.model_id if asr_transcriber else "openai/whisper-tiny",
+        "loaded": asr_transcriber.loaded if asr_transcriber else False,
+    }
+
+    semantic_info = {
+        "loaded": semantic_analyzer is not None,
+        "categories_tracked": len(semantic_analyzer.threat_patterns) if semantic_analyzer else 0,
+    }
+
     return JSONResponse({
         "spoof_detector": spoof_info,
         "speaker_verifier": speaker_info,
+        "asr_transcriber": asr_info,
+        "semantic_analyzer": semantic_info,
     })
 
 
@@ -81,7 +95,7 @@ async def analyze_audio(
 
     structlog.contextvars.bind_contextvars(request_id=request_id)
 
-    from app.main import spoof_detector, speaker_verifier
+    from app.main import spoof_detector, speaker_verifier, asr_transcriber, semantic_analyzer
 
     if not spoof_detector or not spoof_detector.is_loaded:
         return JSONResponse(
@@ -117,9 +131,11 @@ async def analyze_audio(
             waveform = audio_processor.process(temp_path, filename)
             logger.info("Audio preprocessed", duration_sec=len(waveform) / settings.target_sample_rate)
 
+            # 1. AASIST Spoof Detection Inference
             spoof_result = await spoof_detector.detect(waveform)
             logger.info("Spoof detection completed", score=spoof_result.raw_score, label=spoof_result.label)
 
+            # 2. Speaker Verification (Optional)
             speaker_result = None
             if speaker_verifier and speaker_id:
                 try:
@@ -128,10 +144,30 @@ async def analyze_audio(
                 except SpeakerVerificationError as e:
                     logger.warning("Speaker verification failed", error=str(e))
 
+            # 3. Pretrained ASR Speech Transcription
+            asr_result = {"transcript": "", "model_name": "openai/whisper-tiny", "available": False}
+            if asr_transcriber and asr_transcriber.loaded:
+                asr_result = asr_transcriber.transcribe(waveform)
+                logger.info("ASR transcription completed", transcript=asr_result["transcript"])
+
+            # 4. Semantic / Social Engineering Threat Analysis
+            semantic_result = {
+                "transcript": asr_result["transcript"],
+                "semantic_risk_score": 0.0,
+                "threat_level": "LOW",
+                "detected_indicators": [],
+                "recommended_action": "No speech content analyzed",
+            }
+            if semantic_analyzer:
+                semantic_result = semantic_analyzer.analyze(asr_result["transcript"])
+                logger.info("Semantic threat analysis completed", threat_level=semantic_result["threat_level"], score=semantic_result["semantic_risk_score"])
+
+            # 5. Explainable Risk Engine Assessment
             risk_assessment = risk_engine.assess(
                 spoof_result=spoof_result,
                 speaker_result=speaker_result,
                 audio_quality=audio_processor.get_quality_metrics(waveform),
+                semantic_result=semantic_result,
             )
             logger.info("Risk assessment completed", level=risk_assessment.level, score=risk_assessment.score)
 
@@ -145,6 +181,7 @@ async def analyze_audio(
                 speaker_result=speaker_result,
                 risk_assessment=risk_assessment,
                 processing_time_ms=processing_time_ms,
+                semantic_result=semantic_result,
             )
 
             response_data = {
@@ -172,11 +209,23 @@ async def analyze_audio(
                     "available": speaker_result.available if speaker_result else False,
                     "error": speaker_result.error if speaker_result else None,
                 },
+                "semantic_threat_analysis": {
+                    "transcript": semantic_result["transcript"],
+                    "semantic_risk_score": semantic_result["semantic_risk_score"],
+                    "threat_level": semantic_result["threat_level"],
+                    "detected_indicators": semantic_result["detected_indicators"],
+                    "recommended_action": semantic_result["recommended_action"],
+                    "asr_model": asr_result["model_name"],
+                    "inference_time_ms": asr_result.get("inference_time_ms", 0),
+                },
                 "risk_assessment": {
                     "risk_score": risk_assessment.score,
                     "risk_level": risk_assessment.level,
                     "confidence": risk_assessment.confidence,
+                    "acoustic_risk_score": risk_assessment.acoustic_risk_score,
+                    "semantic_risk_score": risk_assessment.semantic_risk_score,
                     "reasons": risk_assessment.reasons,
+                    "explanation": risk_assessment.explanation,
                     "recommended_action": risk_assessment.recommended_action,
                 },
                 "processing_time_ms": round(processing_time_ms, 2),

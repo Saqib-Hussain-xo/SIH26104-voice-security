@@ -263,18 +263,18 @@ class Residual_block(torch.nn.Module):
         if not self.first:
             self.bn1 = torch.nn.BatchNorm2d(num_features=nb_filts[0])
         self.conv1 = torch.nn.Conv2d(in_channels=nb_filts[0],
-                               out_channels=nb_filts[1],
-                               kernel_size=(2, 3),
-                               padding=(1, 1),
-                               stride=1)
+                                out_channels=nb_filts[1],
+                                kernel_size=(2, 3),
+                                padding=(1, 1),
+                                stride=1)
         self.selu = torch.nn.SELU(inplace=True)
 
         self.bn2 = torch.nn.BatchNorm2d(num_features=nb_filts[1])
         self.conv2 = torch.nn.Conv2d(in_channels=nb_filts[1],
-                               out_channels=nb_filts[1],
-                               kernel_size=(2, 3),
-                               padding=(0, 1),
-                               stride=1)
+                                out_channels=nb_filts[1],
+                                kernel_size=(2, 3),
+                                padding=(0, 1),
+                                stride=1)
 
         if nb_filts[0] != nb_filts[1]:
             self.downsample = True
