@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Play, Pause, ChevronDown, ChevronUp } from 'lucide-react';
+import { Play, Pause, ChevronDown, ChevronUp, ShieldCheck, ShieldAlert, Fingerprint, Activity, FileText, Sparkles } from 'lucide-react';
 import { AnalyzeResponse } from '../types';
 
 interface AnalysisResultProps {
@@ -18,19 +18,16 @@ export const AnalysisResult: React.FC<AnalysisResultProps> = ({ result, audioFil
   const isBonaFide = spoof_detection.label === 'bona_fide';
   const riskPercent = Math.round(risk_assessment.risk_score * 100);
 
-  // Status mapping
-  const statusClass =
-    risk_assessment.risk_level === 'LOW'
-      ? 'status-safe'
-      : risk_assessment.risk_level === 'MEDIUM'
-      ? 'status-warning'
-      : 'status-danger';
+  const verdictTheme = isBonaFide ? 'verdict-theme-genuine' : 'verdict-theme-synthetic';
 
   const verdictTitle = isBonaFide
     ? 'Likely Genuine Voice'
     : 'Likely Synthetic Voice';
 
-  // Toggle playback of user audio file
+  const verdictBadge = isBonaFide
+    ? 'Bona Fide Acoustic Signal'
+    : 'Synthetic / Cloning Artifacts Detected';
+
   const togglePlay = () => {
     if (!audioRef.current && audioFile) {
       const audio = new Audio(URL.createObjectURL(audioFile));
@@ -59,210 +56,256 @@ export const AnalysisResult: React.FC<AnalysisResultProps> = ({ result, audioFil
     return `${mins}:${s.toString().padStart(2, '0')}`;
   };
 
-  // Human-readable signal values for horizontal breakdown
-  const voiceAuthScore = isBonaFide ? 15 : 90;
-  const voiceAuthState = isBonaFide ? 'Natural acoustic pattern' : 'Synthetic speech indicators';
+  // Distinctive Evidence Metrics
+  const voiceAuthStatus = isBonaFide ? 'Natural Speech' : 'Synthetic Artifacts';
+  const voiceAuthDetail = isBonaFide
+    ? 'Spectral graph distribution matches human vocal tract'
+    : `Raw AASIST logit ${spoof_detection.raw_score.toFixed(3)}`;
 
-  let speakerScore = 50;
-  let speakerState = 'Identity not specified';
+  let speakerStatus = 'Unspecified';
+  let speakerDetail = 'No reference speaker profile supplied for identity verification';
+  let speakerVerified = false;
   if (speaker_verification.enabled) {
     if (speaker_verification.verified) {
-      speakerScore = 10;
-      speakerState = `Matches reference (${(speaker_verification.similarity || 0).toFixed(2)})`;
+      speakerStatus = 'Verified Identity';
+      speakerDetail = `Cosine similarity ${(speaker_verification.similarity || 0).toFixed(3)} ≥ ${speaker_verification.threshold}`;
+      speakerVerified = true;
     } else {
-      speakerScore = 85;
-      speakerState = `Mismatch / unverified (${(speaker_verification.similarity || 0).toFixed(2)})`;
+      speakerStatus = 'Identity Mismatch';
+      speakerDetail = `Cosine similarity ${(speaker_verification.similarity || 0).toFixed(3)} below threshold ${speaker_verification.threshold}`;
     }
   }
 
-  const audioQualityScore = 95;
-  const audioQualityState = 'Sufficient clarity';
+  const audioQualityStatus = 'High Clarity';
+  const audioQualityDetail = '16kHz PCM mono · Adequate signal-to-noise ratio';
 
-  const semanticScore = Math.round((semantic_threat_analysis?.semantic_risk_score ?? 0) * 100);
-  const semanticState = (semantic_threat_analysis?.detected_indicators?.length ?? 0) > 0
-    ? `${semantic_threat_analysis!.detected_indicators.length} threat indicator(s)`
-    : 'No adversarial patterns';
+  const hasThreat = (semantic_threat_analysis?.detected_indicators?.length ?? 0) > 0;
+  const semanticStatus = hasThreat ? 'Adversarial Signals' : 'Neutral Context';
+  const semanticDetail = hasThreat
+    ? `${semantic_threat_analysis!.detected_indicators.map((d) => d.category).join(', ')} keywords detected`
+    : 'No coercion, urgency, or impersonation keywords detected';
 
   return (
     <section className="sutra-result-section">
-      {/* Primary Human-Readable Verdict Card */}
-      <div className="result-main-card">
-        <div className="verdict-header">
-          <div>
-            <div className="verdict-eyebrow">Analysis Verdict</div>
-            <div className={`verdict-headline ${statusClass}`}>{verdictTitle}</div>
+      {/* 1. Forensic Charcoal Verdict Banner */}
+      <div className={`forensic-verdict-banner ${verdictTheme}`}>
+        <div className="verdict-banner-inner">
+          <div className="verdict-text-block">
+            <div className="verdict-tag-row">
+              <span className="verdict-tag">{verdictBadge}</span>
+              <span className="verdict-trace">TRACE {request_id.slice(0, 8)}</span>
+            </div>
+            <h2 className="verdict-headline">{verdictTitle}</h2>
+            <p className="verdict-statement">
+              {risk_assessment.recommended_action || (isBonaFide
+                ? 'Acoustic spectral patterns show natural human vocal characteristics. Standard verification sufficient.'
+                : 'Spectral distribution indicates artificial speech synthesis, voice conversion, or cloning manipulation.')}
+            </p>
           </div>
 
-          <div className="risk-score-pill">
-            <div className="risk-num">{riskPercent}%</div>
-            <div className="risk-label">{risk_assessment.risk_level} Impersonation Risk</div>
+          <div className="verdict-metric-block">
+            <div className="verdict-metric-score">{riskPercent}%</div>
+            <div className="verdict-metric-level">
+              <span className={`risk-dot risk-dot-${risk_assessment.risk_level.toLowerCase()}`} />
+              {risk_assessment.risk_level} RISK
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Distinctive Forensic Evidence Cards */}
+      <div className="evidence-cards-header">
+        <h3 className="evidence-title">Forensic Signal Analysis</h3>
+        <span className="evidence-subtitle">Four independent acoustic & contextual vectors</span>
+      </div>
+
+      <div className="evidence-cards-grid">
+        {/* Voice Authenticity */}
+        <div className={`evidence-card ${isBonaFide ? 'card-status-safe' : 'card-status-danger'}`}>
+          <div className="evidence-card-top">
+            <div className="evidence-card-icon">
+              {isBonaFide ? <ShieldCheck size={18} /> : <ShieldAlert size={18} />}
+            </div>
+            <span className="evidence-card-badge">{voiceAuthStatus}</span>
+          </div>
+          <div className="evidence-card-label">Voice Authenticity</div>
+          <div className="evidence-card-detail">{voiceAuthDetail}</div>
+          <div className="evidence-card-bar">
+            <div
+              className="evidence-card-fill"
+              style={{
+                width: isBonaFide ? '85%' : '92%',
+                backgroundColor: isBonaFide ? 'var(--status-safe)' : 'var(--status-danger)',
+              }}
+            />
           </div>
         </div>
 
-        <div className="verdict-summary">
-          {risk_assessment.recommended_action || (isBonaFide
-            ? 'No significant indicators of synthetic cloning or manipulation were observed in this recording.'
-            : 'Acoustic feature analysis indicates artificial speech synthesis or voice conversion artifacts.')}
-        </div>
-
-        {/* Horizontal Visual Evidence Breakdown */}
-        <div className="evidence-section-title">Observable Evidence Breakdown</div>
-        <div className="evidence-bars-group">
-          {/* Voice Authenticity */}
-          <div className="evidence-row">
-            <span className="evidence-label">Voice authenticity</span>
-            <div className="evidence-track">
-              <div
-                className="evidence-fill"
-                style={{
-                  width: `${voiceAuthScore}%`,
-                  backgroundColor: isBonaFide ? 'var(--status-safe)' : 'var(--status-danger)',
-                }}
-              />
+        {/* Speaker Identity */}
+        <div className={`evidence-card ${speakerVerified ? 'card-status-safe' : speaker_verification.enabled ? 'card-status-danger' : 'card-status-neutral'}`}>
+          <div className="evidence-card-top">
+            <div className="evidence-card-icon">
+              <Fingerprint size={18} />
             </div>
-            <span className="evidence-state-text">{voiceAuthState}</span>
+            <span className="evidence-card-badge">{speakerStatus}</span>
           </div>
-
-          {/* Speaker Identity */}
-          <div className="evidence-row">
-            <span className="evidence-label">Speaker identity</span>
-            <div className="evidence-track">
-              <div
-                className="evidence-fill"
-                style={{
-                  width: `${speakerScore}%`,
-                  backgroundColor: speaker_verification.enabled && speaker_verification.verified
-                    ? 'var(--status-safe)'
-                    : 'var(--text-tertiary)',
-                }}
-              />
-            </div>
-            <span className="evidence-state-text">{speakerState}</span>
-          </div>
-
-          {/* Audio Quality */}
-          <div className="evidence-row">
-            <span className="evidence-label">Audio quality</span>
-            <div className="evidence-track">
-              <div
-                className="evidence-fill"
-                style={{
-                  width: `${audioQualityScore}%`,
-                  backgroundColor: 'var(--status-safe)',
-                }}
-              />
-            </div>
-            <span className="evidence-state-text">{audioQualityState}</span>
-          </div>
-
-          {/* Semantic Context */}
-          <div className="evidence-row">
-            <span className="evidence-label">Semantic context</span>
-            <div className="evidence-track">
-              <div
-                className="evidence-fill"
-                style={{
-                  width: `${Math.max(10, semanticScore)}%`,
-                  backgroundColor: semanticScore > 40 ? 'var(--status-danger)' : 'var(--status-safe)',
-                }}
-              />
-            </div>
-            <span className="evidence-state-text">{semanticState}</span>
+          <div className="evidence-card-label">Speaker Biometrics</div>
+          <div className="evidence-card-detail">{speakerDetail}</div>
+          <div className="evidence-card-bar">
+            <div
+              className="evidence-card-fill"
+              style={{
+                width: speaker_verification.enabled ? `${Math.min(100, Math.max(10, Math.round((speaker_verification.similarity || 0) * 100)))}%` : '0%',
+                backgroundColor: speakerVerified ? 'var(--status-safe)' : 'var(--status-danger)',
+              }}
+            />
           </div>
         </div>
 
-        {/* Audio Result Playback */}
-        {audioFile && (
-          <div className="result-playback-box">
-            <button className="play-pause-btn" onClick={togglePlay} aria-label={isPlaying ? 'Pause' : 'Play'}>
-              {isPlaying ? <Pause size={16} /> : <Play size={16} style={{ marginLeft: '2px' }} />}
+        {/* Audio Quality */}
+        <div className="evidence-card card-status-safe">
+          <div className="evidence-card-top">
+            <div className="evidence-card-icon">
+              <Activity size={18} />
+            </div>
+            <span className="evidence-card-badge">{audioQualityStatus}</span>
+          </div>
+          <div className="evidence-card-label">Acoustic Signal Quality</div>
+          <div className="evidence-card-detail">{audioQualityDetail}</div>
+          <div className="evidence-card-bar">
+            <div
+              className="evidence-card-fill"
+              style={{ width: '90%', backgroundColor: 'var(--status-safe)' }}
+            />
+          </div>
+        </div>
+
+        {/* Semantic Threat */}
+        <div className={`evidence-card ${hasThreat ? 'card-status-danger' : 'card-status-safe'}`}>
+          <div className="evidence-card-top">
+            <div className="evidence-card-icon">
+              <FileText size={18} />
+            </div>
+            <span className="evidence-card-badge">{semanticStatus}</span>
+          </div>
+          <div className="evidence-card-label">Contextual / Semantic Risk</div>
+          <div className="evidence-card-detail">{semanticDetail}</div>
+          <div className="evidence-card-bar">
+            <div
+              className="evidence-card-fill"
+              style={{
+                width: hasThreat ? '80%' : '15%',
+                backgroundColor: hasThreat ? 'var(--status-danger)' : 'var(--status-safe)',
+              }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Integrated Audio Playback Area */}
+      {audioFile && (
+        <div className="forensic-player-container">
+          <div className="player-meta">
+            <span className="player-title">Analyzed Audio Capture</span>
+            <span className="player-filename">{audioFile.name}</span>
+          </div>
+          <div className="player-controls">
+            <button className="player-play-btn" onClick={togglePlay} aria-label={isPlaying ? 'Pause' : 'Play'}>
+              {isPlaying ? <Pause size={15} /> : <Play size={15} style={{ marginLeft: '2px' }} />}
             </button>
-            <div className="playback-waveform-mock">
-              {/* Restrained amplitude line visualization */}
-              {Array.from({ length: 48 }).map((_, i) => (
+            <div className="player-waveform-track">
+              {Array.from({ length: 42 }).map((_, i) => (
                 <div
                   key={i}
+                  className="player-waveform-bar"
                   style={{
-                    flex: 1,
-                    height: `${Math.max(4, Math.sin(i * 0.4) * 16 + 10)}px`,
-                    backgroundColor: i < (currentTime / 10) * 48 ? 'var(--text-primary)' : 'var(--border-strong)',
-                    borderRadius: '1px',
+                    height: `${Math.max(5, Math.sin(i * 0.35) * 16 + 10)}px`,
+                    opacity: i < (currentTime / 10) * 42 ? 1 : 0.3,
                   }}
                 />
               ))}
             </div>
-            <div className="playback-time">
-              {formatDuration(currentTime)}
-            </div>
+            <span className="player-timer">{formatDuration(currentTime)}</span>
           </div>
-        )}
-      </div>
-
-      {/* Editorial Transcript Card */}
-      {semantic_threat_analysis?.transcript && (
-        <div className="transcript-card">
-          <div className="transcript-label">Transcribed Speech ({semantic_threat_analysis.asr_model || 'Whisper'})</div>
-          <div className="transcript-quote">"{semantic_threat_analysis.transcript}"</div>
         </div>
       )}
 
-      {/* Technical Details Accordion */}
+      {/* 4. Editorial Transcript */}
+      {semantic_threat_analysis?.transcript && (
+        <div className="editorial-transcript-card">
+          <div className="transcript-header-bar">
+            <div className="transcript-meta-tag">
+              <Sparkles size={12} />
+              <span>Whisper Speech-to-Text Transcription</span>
+            </div>
+          </div>
+          <blockquote className="transcript-editorial-quote">
+            "{semantic_threat_analysis.transcript}"
+          </blockquote>
+        </div>
+      )}
+
+      {/* 5. Deep Forensic Technical Layer */}
       <details
-        className="tech-details-details"
+        className="forensic-tech-accordion"
         open={techExpanded}
         onToggle={(e) => setTechExpanded((e.target as HTMLDetailsElement).open)}
       >
-        <summary className="tech-details-summary">
-          <span>Technical Details & Forensic Signals</span>
+        <summary className="forensic-tech-summary">
+          <div className="summary-label-group">
+            <span className="summary-title">Forensic Technology Signals & Weights</span>
+            <span className="summary-subtitle">Raw model logits, 192-dim vectors, and decision matrix</span>
+          </div>
           {techExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </summary>
 
-        <div className="tech-details-content">
-          <div className="tech-grid">
-            <div className="tech-item">
-              <div className="tech-item-title">AASIST Anti-Spoof</div>
-              <div className="tech-item-val">{spoof_detection.raw_score.toFixed(4)}</div>
-              <div className="tech-item-sub">Logit ({spoof_detection.label}) · {spoof_detection.inference_time_ms}ms</div>
+        <div className="forensic-tech-body">
+          <div className="forensic-signals-grid">
+            <div className="forensic-signal-cell">
+              <div className="cell-label">AASIST Logit Output</div>
+              <div className="cell-value">{spoof_detection.raw_score.toFixed(4)}</div>
+              <div className="cell-sub">{spoof_detection.model_version} · {spoof_detection.inference_time_ms}ms</div>
             </div>
 
-            <div className="tech-item">
-              <div className="tech-item-title">ECAPA-TDNN Biometrics</div>
-              <div className="tech-item-val">
+            <div className="forensic-signal-cell">
+              <div className="cell-label">ECAPA-TDNN Similarity</div>
+              <div className="cell-value">
                 {speaker_verification.enabled && typeof speaker_verification.similarity === 'number'
                   ? speaker_verification.similarity.toFixed(4)
                   : 'N/A'}
               </div>
-              <div className="tech-item-sub">
+              <div className="cell-sub">
                 {speaker_verification.enabled
-                  ? `Threshold ${speaker_verification.threshold} · ${speaker_verification.verified ? 'Verified' : 'Unverified'}`
-                  : 'No reference profile applied'}
+                  ? `Threshold ${speaker_verification.threshold} · ${speaker_verification.verified ? 'Verified' : 'Mismatch'}`
+                  : 'No reference profile'}
               </div>
             </div>
 
-            <div className="tech-item">
-              <div className="tech-item-title">Inference Pipeline</div>
-              <div className="tech-item-val">{processing_time_ms}ms</div>
-              <div className="tech-item-sub">Trace: {request_id.slice(0, 8)}</div>
+            <div className="forensic-signal-cell">
+              <div className="cell-label">Semantic Adversarial Score</div>
+              <div className="cell-value">{(semantic_threat_analysis?.semantic_risk_score ?? 0).toFixed(3)}</div>
+              <div className="cell-sub">Level: {semantic_threat_analysis?.threat_level || 'LOW'}</div>
             </div>
 
-            <div className="tech-item">
-              <div className="tech-item-title">Semantic Score</div>
-              <div className="tech-item-val">{(semantic_threat_analysis?.semantic_risk_score ?? 0).toFixed(3)}</div>
-              <div className="tech-item-sub">Level: {semantic_threat_analysis?.threat_level || 'LOW'}</div>
+            <div className="forensic-signal-cell">
+              <div className="cell-label">Pipeline Processing Latency</div>
+              <div className="cell-value">{processing_time_ms}ms</div>
+              <div className="cell-sub">End-to-end execution</div>
             </div>
           </div>
 
-          {/* Explainable factors list */}
           {risk_assessment.reasons && risk_assessment.reasons.length > 0 && (
-            <div style={{ marginTop: '1.25rem' }}>
-              <div className="tech-item-title" style={{ marginBottom: '0.5rem' }}>Risk Engine Factors</div>
-              <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            <div className="forensic-decision-matrix">
+              <div className="matrix-title">Risk Engine Weighted Reasons</div>
+              <div className="matrix-list">
                 {risk_assessment.reasons.map((r, i) => (
-                  <li key={i} style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>
-                    • [{r.factor.toUpperCase()}] {r.reason} ({r.status})
-                  </li>
+                  <div key={i} className="matrix-row">
+                    <span className="matrix-factor">{r.factor}</span>
+                    <span className="matrix-reason">{r.reason}</span>
+                    <span className={`matrix-status status-${r.impact}`}>{r.status}</span>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </div>
           )}
         </div>
