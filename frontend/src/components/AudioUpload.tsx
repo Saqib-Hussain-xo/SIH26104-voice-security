@@ -41,14 +41,14 @@ export const AudioUpload: React.FC<AudioUploadProps> = ({
   return (
     <div>
       <div
-        className="sutra-dropzone"
+        className={`sutra-dropzone ${selectedFile ? 'has-file' : ''}`}
         onDragOver={(e) => {
           e.preventDefault();
           setIsDragOver(true);
         }}
         onDragLeave={() => setIsDragOver(false)}
         onDrop={handleFileDrop}
-        onClick={() => fileInputRef.current?.click()}
+        onClick={() => !selectedFile && fileInputRef.current?.click()}
         style={{ borderColor: isDragOver ? 'var(--border-focus)' : undefined }}
       >
         <input
@@ -60,27 +60,60 @@ export const AudioUpload: React.FC<AudioUploadProps> = ({
         />
 
         {selectedFile ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-            <FileAudio size={28} style={{ color: 'var(--text-primary)' }} />
-            <p style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--text-primary)' }}>{selectedFile.name}</p>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
-              {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB · Ready for analysis
-            </p>
+          <div className="upload-selected-state">
+            <div className="upload-selected-header">
+              <span className="upload-tag">AUDIO FILE</span>
+              <button
+                type="button"
+                className="upload-change-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedFile(null);
+                  if (fileInputRef.current) fileInputRef.current.value = '';
+                }}
+              >
+                Change file
+              </button>
+            </div>
+            <div className="upload-selected-info">
+              <div className="upload-file-icon">
+                <FileAudio size={24} />
+              </div>
+              <div className="upload-file-details">
+                <p className="upload-filename">{selectedFile.name}</p>
+                <p className="upload-filesub">
+                  {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB · Ready for analysis
+                </p>
+              </div>
+            </div>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-            <UploadCloud size={30} style={{ color: 'var(--text-tertiary)' }} />
-            <p style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--text-primary)' }}>
-              Choose an audio file
+          <div className="upload-empty-state">
+            <div className="upload-icon-circle">
+              <UploadCloud size={24} />
+            </div>
+            <h3 className="upload-main-title">Drop an audio file here</h3>
+            <p className="upload-main-desc">
+              Drop audio here or browse from your computer
             </p>
-            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-              Drag and drop or browse · WAV, MP3, FLAC, M4A supported
-            </p>
+            <span className="upload-formats-badge">
+              WAV · MP3 · FLAC · M4A
+            </span>
+            <button
+              type="button"
+              className="upload-choose-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                fileInputRef.current?.click();
+              }}
+            >
+              Choose audio file
+            </button>
           </div>
         )}
       </div>
 
-      <div className="sutra-actions-row" style={{ marginTop: '1.5rem' }}>
+      <div className="sutra-actions-row" style={{ marginTop: '1.25rem' }}>
         <button
           className="sutra-btn-primary"
           onClick={handleSubmit}

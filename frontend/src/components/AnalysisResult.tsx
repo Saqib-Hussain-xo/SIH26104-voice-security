@@ -130,14 +130,22 @@ export const AnalysisResult: React.FC<AnalysisResultProps> = ({ result, audioFil
           </div>
           <div className="evidence-card-label">Voice Authenticity</div>
           <div className="evidence-card-detail">{voiceAuthDetail}</div>
-          <div className="evidence-card-bar">
-            <div
-              className="evidence-card-fill"
-              style={{
-                width: isBonaFide ? '85%' : '92%',
-                backgroundColor: isBonaFide ? 'var(--status-safe)' : 'var(--status-danger)',
-              }}
-            />
+          <div className="evidence-card-bar-wrapper">
+            <div className="evidence-card-bar-meta">
+              <span className="evidence-card-bar-meta-label">Acoustic Signal:</span>
+              <span className="evidence-card-bar-meta-value" style={{ color: isBonaFide ? 'var(--status-safe)' : 'var(--status-danger)' }}>
+                {isBonaFide ? 'Natural / Low Artifacts' : 'Synthetic Artifacts Detected'}
+              </span>
+            </div>
+            <div className="evidence-card-bar">
+              <div
+                className="evidence-card-fill"
+                style={{
+                  width: isBonaFide ? '85%' : '92%',
+                  backgroundColor: isBonaFide ? 'var(--status-safe)' : 'var(--status-danger)',
+                }}
+              />
+            </div>
           </div>
         </div>
 
@@ -151,14 +159,22 @@ export const AnalysisResult: React.FC<AnalysisResultProps> = ({ result, audioFil
           </div>
           <div className="evidence-card-label">Speaker Biometrics</div>
           <div className="evidence-card-detail">{speakerDetail}</div>
-          <div className="evidence-card-bar">
-            <div
-              className="evidence-card-fill"
-              style={{
-                width: speaker_verification.enabled ? `${Math.min(100, Math.max(10, Math.round((speaker_verification.similarity || 0) * 100)))}%` : '0%',
-                backgroundColor: speakerVerified ? 'var(--status-safe)' : 'var(--status-danger)',
-              }}
-            />
+          <div className="evidence-card-bar-wrapper">
+            <div className="evidence-card-bar-meta">
+              <span className="evidence-card-bar-meta-label">Identity Match:</span>
+              <span className="evidence-card-bar-meta-value" style={{ color: speakerVerified ? 'var(--status-safe)' : speaker_verification.enabled ? 'var(--status-danger)' : 'var(--text-tertiary)' }}>
+                {speaker_verification.enabled ? (speakerVerified ? 'Verified Profile' : 'Biometric Mismatch') : 'No Reference Enrolled'}
+              </span>
+            </div>
+            <div className="evidence-card-bar">
+              <div
+                className="evidence-card-fill"
+                style={{
+                  width: speaker_verification.enabled ? `${Math.min(100, Math.max(10, Math.round((speaker_verification.similarity || 0) * 100)))}%` : '0%',
+                  backgroundColor: speakerVerified ? 'var(--status-safe)' : 'var(--status-danger)',
+                }}
+              />
+            </div>
           </div>
         </div>
 
@@ -172,11 +188,19 @@ export const AnalysisResult: React.FC<AnalysisResultProps> = ({ result, audioFil
           </div>
           <div className="evidence-card-label">Acoustic Signal Quality</div>
           <div className="evidence-card-detail">{audioQualityDetail}</div>
-          <div className="evidence-card-bar">
-            <div
-              className="evidence-card-fill"
-              style={{ width: '90%', backgroundColor: 'var(--status-safe)' }}
-            />
+          <div className="evidence-card-bar-wrapper">
+            <div className="evidence-card-bar-meta">
+              <span className="evidence-card-bar-meta-label">Bandwidth Fidelity:</span>
+              <span className="evidence-card-bar-meta-value" style={{ color: 'var(--status-safe)' }}>
+                16kHz Broadcast Grade
+              </span>
+            </div>
+            <div className="evidence-card-bar">
+              <div
+                className="evidence-card-fill"
+                style={{ width: '92%', backgroundColor: 'var(--status-safe)' }}
+              />
+            </div>
           </div>
         </div>
 
@@ -190,14 +214,22 @@ export const AnalysisResult: React.FC<AnalysisResultProps> = ({ result, audioFil
           </div>
           <div className="evidence-card-label">Contextual / Semantic Risk</div>
           <div className="evidence-card-detail">{semanticDetail}</div>
-          <div className="evidence-card-bar">
-            <div
-              className="evidence-card-fill"
-              style={{
-                width: hasThreat ? '80%' : '15%',
-                backgroundColor: hasThreat ? 'var(--status-danger)' : 'var(--status-safe)',
-              }}
-            />
+          <div className="evidence-card-bar-wrapper">
+            <div className="evidence-card-bar-meta">
+              <span className="evidence-card-bar-meta-label">Adversarial Urgency:</span>
+              <span className="evidence-card-bar-meta-value" style={{ color: hasThreat ? 'var(--status-danger)' : 'var(--status-safe)' }}>
+                {hasThreat ? 'Social Engineering Flagged' : 'No Coercive Language'}
+              </span>
+            </div>
+            <div className="evidence-card-bar">
+              <div
+                className="evidence-card-fill"
+                style={{
+                  width: hasThreat ? '85%' : '15%',
+                  backgroundColor: hasThreat ? 'var(--status-danger)' : 'var(--status-safe)',
+                }}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -236,7 +268,7 @@ export const AnalysisResult: React.FC<AnalysisResultProps> = ({ result, audioFil
           <div className="transcript-header-bar">
             <div className="transcript-meta-tag">
               <Sparkles size={12} />
-              <span>Whisper Speech-to-Text Transcription</span>
+              <span>SPEECH CONTENT · WHISPER-TINY · analyzed audio</span>
             </div>
           </div>
           <blockquote className="transcript-editorial-quote">
@@ -253,8 +285,8 @@ export const AnalysisResult: React.FC<AnalysisResultProps> = ({ result, audioFil
       >
         <summary className="forensic-tech-summary">
           <div className="summary-label-group">
-            <span className="summary-title">Forensic Technology Signals & Weights</span>
-            <span className="summary-subtitle">Raw model logits, 192-dim vectors, and decision matrix</span>
+            <span className="summary-title">How SUTRA reached this result</span>
+            <span className="summary-subtitle">Technical signals · AASIST · ECAPA-TDNN · Whisper</span>
           </div>
           {techExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </summary>

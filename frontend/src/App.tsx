@@ -10,7 +10,7 @@ import { Mic, UploadCloud, AlertCircle } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [health, setHealth] = useState<HealthStatus | null>(null);
-  const [activeTab, setActiveTab] = useState<'record' | 'upload'>('record');
+  const [activeTab, setActiveTab] = useState<'upload' | 'record'>('upload');
   const [speakerId, setSpeakerId] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,30 +62,30 @@ export const App: React.FC = () => {
       <section className="sutra-input-container">
         <div className="input-mode-switcher">
           <button
-            className={`mode-btn ${activeTab === 'record' ? 'active' : ''}`}
-            onClick={() => setActiveTab('record')}
-          >
-            <Mic size={14} />
-            Record voice
-          </button>
-          <button
             className={`mode-btn ${activeTab === 'upload' ? 'active' : ''}`}
             onClick={() => setActiveTab('upload')}
           >
             <UploadCloud size={14} />
             Upload file
           </button>
+          <button
+            className={`mode-btn ${activeTab === 'record' ? 'active' : ''}`}
+            onClick={() => setActiveTab('record')}
+          >
+            <Mic size={14} />
+            Record voice
+          </button>
         </div>
 
-        {activeTab === 'record' ? (
-          <MicRecorder
+        {activeTab === 'upload' ? (
+          <AudioUpload
             onAnalyze={handleAnalyze}
             loading={loading}
             speakerId={speakerId}
             setSpeakerId={setSpeakerId}
           />
         ) : (
-          <AudioUpload
+          <MicRecorder
             onAnalyze={handleAnalyze}
             loading={loading}
             speakerId={speakerId}
