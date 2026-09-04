@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Mic, Square, Send, Loader2 } from 'lucide-react';
+import { Mic, Square, ArrowRight, RotateCcw, Loader2 } from 'lucide-react';
 
 interface MicRecorderProps {
   onAnalyze: (file: File, speakerId?: string) => void;
   loading: boolean;
+  speakerId: string;
+  setSpeakerId: (id: string) => void;
 }
 
 function writeString(view: DataView, offset: number, string: string) {
@@ -16,34 +18,20 @@ function encodeWAV(samples: Float32Array, sampleRate: number): Blob {
   const buffer = new ArrayBuffer(44 + samples.length * 2);
   const view = new DataView(buffer);
 
-  /* RIFF identifier */
   writeString(view, 0, 'RIFF');
-  /* RIFF chunk length */
   view.setUint32(4, 36 + samples.length * 2, true);
-  /* RIFF type */
   writeString(view, 8, 'WAVE');
-  /* format chunk identifier */
   writeString(view, 12, 'fmt ');
-  /* format chunk length */
   view.setUint32(16, 16, true);
-  /* sample format (raw PCM = 1) */
   view.setUint16(20, 1, true);
-  /* channel count (mono = 1) */
   view.setUint16(22, 1, true);
-  /* sample rate */
   view.setUint32(24, sampleRate, true);
-  /* byte rate (sampleRate * 2) */
   view.setUint32(28, sampleRate * 2, true);
-  /* block align (channel count = 1 * 2 bytes) */
   view.setUint16(32, 2, true);
-  /* bits per sample */
   view.setUint16(34, 16, true);
-  /* data chunk identifier */
   writeString(view, 36, 'data');
-  /* data chunk length */
   view.setUint32(40, samples.length * 2, true);
 
-  /* float32 -> int16 PCM */
   let offset = 44;
   for (let i = 0; i < samples.length; i++, offset += 2) {
     const s = Math.max(-1, Math.min(1, samples[i]));
@@ -53,51 +41,66 @@ function encodeWAV(samples: Float32Array, sampleRate: number): Blob {
   return new Blob([buffer], { type: 'audio/wav' });
 }
 
-// Resamples audio using the browser's native high-quality OfflineAudioContext
-async function resampleTo16k(samples: Float32Array, origRate: number): Promise<any> {
+async function resampleTo16k(samples: Float32Array, origRate: number): Promise<Float32Array> {
   if (origRate === 16000) return samples;
-  
   const targetRate = 16000;
   const duration = samples.length / origRate;
-  
   const OfflineCtx = window.OfflineAudioContext || (window as any).webkitOfflineAudioContext;
-  if (!OfflineCtx) return samples; // Fallback if unsupported
+  if (!OfflineCtx) return samples;
 
   const offlineCtx = new OfflineCtx(1, duration * targetRate, targetRate);
   const buffer = offlineCtx.createBuffer(1, samples.length, origRate);
   buffer.getChannelData(0).set(samples);
-  
+
   const source = offlineCtx.createBufferSource();
   source.buffer = buffer;
   source.connect(offlineCtx.destination);
   source.start(0);
-  
+
   const renderedBuffer = await offlineCtx.startRendering();
   return renderedBuffer.getChannelData(0);
 }
 
-export const MicRecorder: React.FC<MicRecorderProps> = ({ onAnalyze, loading }) => {
+const BAR_COUNT = 32;
+
+export const MicRecorder: React.FC<MicRecorderProps> = ({
+  onAnalyze,
+  loading,
+  speakerId,
+  setSpeakerId,
+}) => {
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [speakerId, setSpeakerId] = useState<string>('');
+  const [durationSec, setDurationSec] = useState<number>(0);
+  const [amplitudes, setAmplitudes] = useState<number[]>(new Array(BAR_COUNT).fill(4));
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
-  const gainNodeRef = useRef<GainNode | null>(null);
-  const pcmChunksRef = useRef<any[]>([]);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const pcmChunksRef = useRef<Float32Array[]>([]);
+  const animationFrameRef = useRef<number | null>(null);
+  const timerIntervalRef = useRef<any>(null);
 
   const cleanupResources = useCallback(() => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
     if (processorRef.current) {
       processorRef.current.disconnect();
       processorRef.current = null;
     }
-    if (gainNodeRef.current) {
-      gainNodeRef.current.disconnect();
-      gainNodeRef.current = null;
+    if (analyserRef.current) {
+      analyserRef.current.disconnect();
+      analyserRef.current = null;
     }
     if (sourceRef.current) {
       sourceRef.current.disconnect();
@@ -108,7 +111,7 @@ export const MicRecorder: React.FC<MicRecorderProps> = ({ onAnalyze, loading }) 
       streamRef.current = null;
     }
     if (audioContextRef.current) {
-      audioContextRef.current.close().catch(console.error);
+      audioContextRef.current.close().catch(() => {});
       audioContextRef.current = null;
     }
   }, []);
@@ -119,6 +122,25 @@ export const MicRecorder: React.FC<MicRecorderProps> = ({ onAnalyze, loading }) 
     };
   }, [cleanupResources]);
 
+  const updateWaveform = () => {
+    if (!analyserRef.current) return;
+    const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+    analyserRef.current.getByteFrequencyData(dataArray);
+
+    const step = Math.floor(dataArray.length / BAR_COUNT);
+    const nextAmps: number[] = [];
+
+    for (let i = 0; i < BAR_COUNT; i++) {
+      const val = dataArray[i * step] || 0;
+      // Normal speech scaling: map 0-255 to min 4px, max 48px
+      const height = Math.max(4, Math.min(48, Math.round((val / 255) * 44 + 4)));
+      nextAmps.push(height);
+    }
+
+    setAmplitudes(nextAmps);
+    animationFrameRef.current = requestAnimationFrame(updateWaveform);
+  };
+
   const startRecording = async () => {
     try {
       let stream: MediaStream;
@@ -127,7 +149,7 @@ export const MicRecorder: React.FC<MicRecorderProps> = ({ onAnalyze, loading }) 
           audio: {
             echoCancellation: true,
             noiseSuppression: true,
-            autoGainControl: false, // Prevents OS/Browser clipping from excessive artificial gain
+            autoGainControl: false,
           },
         });
       } catch {
@@ -136,37 +158,48 @@ export const MicRecorder: React.FC<MicRecorderProps> = ({ onAnalyze, loading }) 
       streamRef.current = stream;
 
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      // Request 16000Hz, but browser may supply a different native hardware rate
       const audioContext = new AudioCtx({ sampleRate: 16000 });
       audioContextRef.current = audioContext;
 
       const source = audioContext.createMediaStreamSource(stream);
       sourceRef.current = source;
 
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 128;
+      analyser.smoothingTimeConstant = 0.75;
+      analyserRef.current = analyser;
+
       const processor = audioContext.createScriptProcessor(4096, 1, 1);
       processorRef.current = processor;
-
       pcmChunksRef.current = [];
 
       processor.onaudioprocess = (e) => {
         const input = e.inputBuffer.getChannelData(0);
-        pcmChunksRef.current.push(new Float32Array(input) as unknown as Float32Array);
+        pcmChunksRef.current.push(new Float32Array(input));
       };
 
       const gainNode = audioContext.createGain();
-      gainNode.gain.value = 0; // Zero-gain to prevent mic feedback through speakers
-      gainNodeRef.current = gainNode;
+      gainNode.gain.value = 0;
 
-      source.connect(processor);
+      source.connect(analyser);
+      analyser.connect(processor);
       processor.connect(gainNode);
       gainNode.connect(audioContext.destination);
 
       setIsRecording(true);
       setAudioBlob(null);
       setAudioUrl(null);
+      setDurationSec(0);
+
+      const startTime = Date.now();
+      timerIntervalRef.current = setInterval(() => {
+        setDurationSec(Math.floor((Date.now() - startTime) / 1000));
+      }, 1000);
+
+      animationFrameRef.current = requestAnimationFrame(updateWaveform);
     } catch (err) {
-      console.error('Microphone recording error:', err);
-      alert('Microphone access denied or unsupported by browser.');
+      console.error('Microphone error:', err);
+      alert('Microphone access was denied or unsupported.');
     }
   };
 
@@ -178,13 +211,10 @@ export const MicRecorder: React.FC<MicRecorderProps> = ({ onAnalyze, loading }) 
     const pcmChunks = pcmChunksRef.current;
     const origSampleRate = audioContextRef.current ? audioContextRef.current.sampleRate : 16000;
 
-    // Clean up hardware immediately while processing
     cleanupResources();
 
     let totalLength = 0;
-    for (const chunk of pcmChunks) {
-      totalLength += chunk.length;
-    }
+    for (const chunk of pcmChunks) totalLength += chunk.length;
 
     const rawSamples = new Float32Array(totalLength);
     let offset = 0;
@@ -193,7 +223,6 @@ export const MicRecorder: React.FC<MicRecorderProps> = ({ onAnalyze, loading }) 
       offset += chunk.length;
     }
 
-    // High quality resampling to 16kHz if browser ignored sampleRate: 16000
     let finalSamples: any = rawSamples;
     let finalSampleRate = origSampleRate;
 
@@ -202,115 +231,118 @@ export const MicRecorder: React.FC<MicRecorderProps> = ({ onAnalyze, loading }) 
         finalSamples = await resampleTo16k(rawSamples, origSampleRate);
         finalSampleRate = 16000;
       } catch (err) {
-        console.error("Native resampling failed, keeping original rate", err);
+        console.error('Resampling fallback:', err);
       }
     }
 
-    // Diagnostic logging on the ACTUAL final buffer
-    let maxPeak = 0;
-    let sumSquares = 0;
-    let clippedCount = 0;
-    for (let i = 0; i < finalSamples.length; i++) {
-      const absVal = Math.abs(finalSamples[i]);
-      if (absVal > maxPeak) maxPeak = absVal;
-      sumSquares += finalSamples[i] * finalSamples[i];
-      if (absVal >= 0.99) clippedCount++;
-    }
-    const rms = Math.sqrt(sumSquares / (finalSamples.length || 1));
-    const clipPercentage = (clippedCount / (finalSamples.length || 1)) * 100;
-    const durationSec = finalSamples.length / finalSampleRate;
-
-    console.log('[MicRecorder Diagnostic]', {
-      actualAudioContextRate: origSampleRate,
-      outputWavRate: finalSampleRate,
-      resamplingOccurred: origSampleRate !== finalSampleRate,
-      peak: maxPeak.toFixed(4),
-      rms: rms.toFixed(4),
-      clippedCount,
-      clipPercentage: clipPercentage.toFixed(2) + '%',
-      sampleCount: finalSamples.length,
-      channelCount: 1,
-      recordedDurationSec: durationSec.toFixed(2),
-    });
-
     const wavBlob = encodeWAV(finalSamples, finalSampleRate);
-
     setAudioBlob(wavBlob);
     setAudioUrl(URL.createObjectURL(wavBlob));
     setIsProcessing(false);
+    setAmplitudes(new Array(BAR_COUNT).fill(4));
+  };
+
+  const handleReset = () => {
+    setAudioBlob(null);
+    setAudioUrl(null);
+    setDurationSec(0);
+    setAmplitudes(new Array(BAR_COUNT).fill(4));
   };
 
   const handleSubmit = () => {
     if (audioBlob && !loading) {
-      const file = new File([audioBlob], `mic_recording_${Date.now()}.wav`, { type: 'audio/wav' });
+      const file = new File([audioBlob], `sutra_recording_${Date.now()}.wav`, { type: 'audio/wav' });
       onAnalyze(file, speakerId.trim() || undefined);
     }
   };
 
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
   return (
-    <div style={{ textAlign: 'center', padding: '1rem' }}>
-      {!isRecording && !isProcessing && !audioBlob && (
-        <button className="btn btn-primary" onClick={startRecording} style={{ padding: '0.875rem 1.5rem' }}>
-          <Mic size={20} />
-          Start Microphone Recording
-        </button>
-      )}
-
-      {isRecording && (
-        <div>
-          <p style={{ color: 'var(--color-critical)', fontWeight: 600, marginBottom: '1rem' }}>
-            🔴 Recording Audio... speak into your microphone
-          </p>
-          <button className="btn btn-danger" onClick={stopRecording}>
-            <Square size={18} />
-            Stop Recording
-          </button>
+    <div>
+      {/* Real-time Dynamic Waveform Display */}
+      <div className="mic-visualizer-box">
+        <div className="waveform-bars">
+          {amplitudes.map((height, i) => (
+            <div
+              key={i}
+              className={`waveform-bar ${isRecording ? 'active' : ''} ${i >= 12 && i <= 19 ? 'brand-accent' : ''}`}
+              style={{ height: `${height}px` }}
+            />
+          ))}
         </div>
-      )}
 
-      {isProcessing && (
-        <div>
-          <p style={{ color: 'var(--text-main)', fontWeight: 500, marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-            <Loader2 className="animate-spin" size={18} />
-            Processing audio...
-          </p>
-        </div>
-      )}
+        {isRecording ? (
+          <div className="recording-timer">
+            <span className="rec-pulse-dot" />
+            <span>Recording {formatTime(durationSec)}</span>
+          </div>
+        ) : audioBlob ? (
+          <div className="recording-timer">
+            <span>Audio ready ({formatTime(durationSec || Math.round(audioBlob.size / 32000))})</span>
+          </div>
+        ) : (
+          <div style={{ fontSize: '0.8125rem', color: 'var(--text-tertiary)', marginTop: '0.75rem' }}>
+            Microphone ready
+          </div>
+        )}
+      </div>
 
-      {audioBlob && !isRecording && !isProcessing && (
+      {/* Control Actions Row */}
+      <div className="sutra-actions-row">
         <div>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
-            Audio recorded ({(audioBlob.size / 1024).toFixed(1)} KB)
-          </p>
-          {audioUrl && (
-            <audio controls src={audioUrl} style={{ width: '100%', marginBottom: '1rem' }} />
+          {!isRecording && !audioBlob && (
+            <button className="sutra-btn-primary" onClick={startRecording}>
+              <Mic size={16} />
+              Start a recording
+            </button>
           )}
 
-          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
-            <button className="btn btn-outline" onClick={() => { setAudioBlob(null); setAudioUrl(null); }}>
-              Re-record
+          {isRecording && (
+            <button className="sutra-btn-danger" onClick={stopRecording}>
+              <Square size={16} />
+              Stop recording
             </button>
+          )}
 
-            <input
-              type="text"
-              placeholder="Speaker ID (optional)"
-              value={speakerId}
-              onChange={(e) => setSpeakerId(e.target.value)}
-              style={{
-                padding: '0.5rem',
-                borderRadius: '0.375rem',
-                border: '1px solid var(--border-color)',
-                backgroundColor: 'rgba(0,0,0,0.2)',
-                color: 'white',
-              }}
-            />
+          {audioBlob && !isRecording && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <button
+                className="sutra-btn-primary"
+                onClick={handleSubmit}
+                disabled={loading}
+              >
+                {loading ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
+                Verify Recording
+              </button>
 
-            <button className="btn btn-primary" onClick={handleSubmit} disabled={loading}>
-              <Send size={16} />
-              {loading ? 'Analyzing...' : 'Analyze Recording'}
-            </button>
-          </div>
+              <button className="sutra-btn-ghost" onClick={handleReset} disabled={loading}>
+                <RotateCcw size={14} style={{ marginRight: '0.35rem' }} />
+                Discard & Re-record
+              </button>
+            </div>
+          )}
         </div>
+
+        {/* Optional Speaker Verification Input */}
+        <input
+          type="text"
+          className="speaker-opt-input"
+          placeholder="Speaker ID (Optional match)"
+          value={speakerId}
+          onChange={(e) => setSpeakerId(e.target.value)}
+          disabled={isRecording || loading}
+        />
+      </div>
+
+      {isProcessing && (
+        <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Loader2 size={14} className="animate-spin" /> Preparing 16kHz audio waveform...
+        </p>
       )}
     </div>
   );

@@ -1,14 +1,20 @@
 import React, { useState, useRef } from 'react';
-import { UploadCloud, ArrowRight, FileAudio, UserCheck } from 'lucide-react';
+import { UploadCloud, FileAudio, ArrowRight, Loader2 } from 'lucide-react';
 
 interface AudioUploadProps {
   onAnalyze: (file: File, speakerId?: string) => void;
   loading: boolean;
+  speakerId: string;
+  setSpeakerId: (id: string) => void;
 }
 
-export const AudioUpload: React.FC<AudioUploadProps> = ({ onAnalyze, loading }) => {
+export const AudioUpload: React.FC<AudioUploadProps> = ({
+  onAnalyze,
+  loading,
+  speakerId,
+  setSpeakerId,
+}) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [speakerId, setSpeakerId] = useState<string>('');
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -35,7 +41,7 @@ export const AudioUpload: React.FC<AudioUploadProps> = ({ onAnalyze, loading }) 
   return (
     <div>
       <div
-        className={`dropzone ${isDragOver ? 'active' : ''}`}
+        className="sutra-dropzone"
         onDragOver={(e) => {
           e.preventDefault();
           setIsDragOver(true);
@@ -43,6 +49,7 @@ export const AudioUpload: React.FC<AudioUploadProps> = ({ onAnalyze, loading }) 
         onDragLeave={() => setIsDragOver(false)}
         onDrop={handleFileDrop}
         onClick={() => fileInputRef.current?.click()}
+        style={{ borderColor: isDragOver ? 'var(--border-focus)' : undefined }}
       >
         <input
           type="file"
@@ -52,42 +59,45 @@ export const AudioUpload: React.FC<AudioUploadProps> = ({ onAnalyze, loading }) 
           style={{ display: 'none' }}
         />
 
-        <UploadCloud className="upload-icon" />
         {selectedFile ? (
-          <div>
-            <p style={{ fontWeight: 600, color: 'var(--color-primary)', fontSize: '0.875rem' }}>{selectedFile.name}</p>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', marginTop: '0.25rem' }}>
-              {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB | Ready for analysis
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+            <FileAudio size={28} style={{ color: 'var(--text-primary)' }} />
+            <p style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--text-primary)' }}>{selectedFile.name}</p>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
+              {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB · Ready for analysis
             </p>
           </div>
         ) : (
-          <div>
-            <p style={{ fontWeight: 600, fontSize: '0.875rem' }}>Drop voice recording or select file</p>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.35rem' }}>
-              WAV, MP3, FLAC, M4A accepted (processed to 16kHz mono internally)
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+            <UploadCloud size={30} style={{ color: 'var(--text-tertiary)' }} />
+            <p style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--text-primary)' }}>
+              Choose an audio file
+            </p>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+              Drag and drop or browse · WAV, MP3, FLAC, M4A supported
             </p>
           </div>
         )}
       </div>
 
-      <div style={{ marginTop: '1rem', display: 'flex', gap: '0.625rem', alignItems: 'center' }}>
-        <input
-          type="text"
-          className="input-field"
-          placeholder="Target Speaker ID for biometric matching (Optional)"
-          value={speakerId}
-          onChange={(e) => setSpeakerId(e.target.value)}
-          style={{ flex: 1 }}
-        />
-
+      <div className="sutra-actions-row" style={{ marginTop: '1.5rem' }}>
         <button
-          className="btn btn-primary"
+          className="sutra-btn-primary"
           onClick={handleSubmit}
           disabled={!selectedFile || loading}
         >
-          {loading ? 'Analyzing...' : 'Run Security Scan'}
-          <ArrowRight size={15} />
+          {loading ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
+          Verify Audio File
         </button>
+
+        <input
+          type="text"
+          className="speaker-opt-input"
+          placeholder="Speaker ID (Optional match)"
+          value={speakerId}
+          onChange={(e) => setSpeakerId(e.target.value)}
+          disabled={loading}
+        />
       </div>
     </div>
   );
