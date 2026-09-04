@@ -4,12 +4,12 @@ import torch
 import numpy as np
 from dataclasses import dataclass
 from typing import Optional, Dict
+from app.config import settings
 from app.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
-ENROLLMENT_DIR = "data/enrollments"
-os.makedirs(ENROLLMENT_DIR, exist_ok=True)
+ENROLLMENT_DIR = settings.enrollment_dir
 
 # Pre-import SpeechBrain at module load time to prevent circular import issues inside async loops
 SPEECHBRAIN_AVAILABLE = False

@@ -145,3 +145,39 @@ def test_speaker_enroll_and_verify(client):
     verify_data = verify_res.json()
     assert verify_data["speaker_verification"]["enabled"] is True
     assert verify_data["speaker_verification"]["verified"] is True
+
+
+def test_risk_engine_impersonation_regression():
+    """Ensure spoofed audio claiming genuine enrolled identity triggers CRITICAL impersonation risk, not LOW/ACCEPT."""
+    from app.models.spoof_detector import SpoofDetectionResult
+    from app.models.speaker_verifier import SpeakerVerificationResult
+    from app.services.risk_engine import RiskEngine
+
+    engine = RiskEngine()
+    spoof_result = SpoofDetectionResult(
+        model_name="AASIST",
+        model_version="ASVspoof2019-LA",
+        raw_score=-0.455,  # ~38.8% bona fide prob
+        score_type="bona_fide_logit",
+        interpretation="Spoof logit higher than bona fide logit",
+        label="spoof",
+        inference_time_ms=15.0,
+        available=True,
+    )
+    speaker_result = SpeakerVerificationResult(
+        model_name="ECAPA-TDNN",
+        model_version="VoxCeleb1+2",
+        similarity=1.0,
+        threshold=0.65,
+        verified=True,
+        inference_time_ms=20.0,
+        available=True,
+        speaker_id="victim_target",
+    )
+    quality = {"rms": 0.05, "is_clipped": False, "is_silent": False}
+
+    assessment = engine.assess(spoof_result, speaker_result, quality)
+    assert assessment.level in ["HIGH", "CRITICAL"]
+    assert assessment.score >= 0.75
+    assert "REJECT" in assessment.recommended_action
+

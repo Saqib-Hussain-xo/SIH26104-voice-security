@@ -27,9 +27,10 @@ export default defineConfig({
 - **Preview Build**: `npm run preview`
 
 ## Primary Views & Components
-- `App.tsx`: Main dashboard container managing active tabs, global stats, health polling, and history refresh.
+- `App.tsx`: Main analysis container managing input mode, health polling, analysis, and enrollment.
 - `Header.tsx`: System header displaying backend connection status badge.
 - `AudioUpload.tsx`: Drag & drop audio file upload zone.
 - `MicRecorder.tsx`: Microphone live audio recording via WebRTC MediaRecorder.
 - `AnalysisResult.tsx`: Display card for Risk Level, Synthetic Evidence Score, AASIST logit details, ECAPA-TDNN similarity, and factor explanation items.
-- `ReportHistory.tsx`: Historical scans data table fetching records from `GET /api/v1/reports`.
+
+SQLite report persistence remains a backend/API capability. It is intentionally not displayed in the primary analysis experience.

@@ -147,7 +147,7 @@ The React dashboard provides:
 - Speaker similarity information.
 - Explainable factor breakdown.
 - Recommended action.
-- Historical scan table backed by SQLite reports.
+- A focused input-to-result workflow without operational telemetry or audit-table UI.
 
 ## 5. API Endpoints
 
@@ -252,15 +252,56 @@ Open the dashboard at:
 http://localhost:5173
 ```
 
-### Step 5: Use the dashboard
+### Step 5: Analyze audio
 
-1. Open **Audio Upload** and choose an audio file, or open **Microphone** and record your voice.
+1. Open **Audio File** and choose an audio file, or open **Live Microphone** and record your voice.
 2. Submit the recording for analysis.
-3. Read the AASIST prediction and risk result.
-4. For identity verification, first use **Speaker Enrollment** to register a reference sample.
+3. Read the AASIST prediction, forensic logit, and risk verdict.
+4. For identity verification, first use **Speaker Registry** to enroll a reference sample.
 5. Supply the enrolled speaker ID during analysis to include ECAPA-TDNN speaker verification.
 6. Review the factor breakdown and recommended action.
-7. Use the history table to review previous analyses.
+7. Use the incident table to review previous analyses.
+
+## 8. Production Deployment Guide
+
+For public internet demonstration under HTTPS:
+
+```text
+INTERNET
+   │
+   ▼ HTTPS
+┌─────────────────────────────────┐
+│ Production Frontend             │  (Vercel / Cloudflare Pages)
+│ React 18 + Vite + TypeScript    │  Env: VITE_API_BASE_URL=https://api.yourdomain.com
+└────────────────┬────────────────┘
+                 │
+                 ▼ HTTPS (CORS Restricted)
+┌─────────────────────────────────┐
+│ Protected FastAPI API Backend   │  (Render / Fly.io / VPS / Docker)
+│ PyTorch + AASIST + ECAPA-TDNN   │  Min 2GB RAM required for ML CPU inference
+└────────────────┬────────────────┘
+                 │
+  ┌──────────────┼──────────────┐
+  ▼              ▼              ▼
+AASIST       ECAPA-TDNN      SQLite
+(Anti-Spoof) (Biometrics)   (Audit Logs)
+```
+
+### Production Environment Variables
+
+- `APP_ENV=production`
+- `CORS_ORIGINS=https://your-frontend-deployment.vercel.app` (restricts API access exclusively to the production frontend)
+- `BACKEND_HOST=0.0.0.0`
+- `BACKEND_PORT=8000`
+- `VITE_API_BASE_URL=https://your-backend-api.onrender.com` (configured on frontend build)
+
+### Production Server Launch
+
+In production, run Uvicorn without `--reload`:
+
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+```
 
 ## 8. Running the Tests
 
