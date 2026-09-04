@@ -103,24 +103,3 @@ export interface ModelStatus {
     categories_tracked?: number;
   };
 }
-
-export interface ReportSummary {
-  request_id: string;
-  timestamp: string;
-  filename: string;
-  duration_sec: number;
-  spoof_score: number;
-  spoof_label: string;
-  risk_level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  risk_score: number;
-  transcript?: string;
-  semantic_risk_score?: number;
-  threat_level?: string;
-}
-
-export interface ReportListResponse {
-  reports: ReportSummary[];
-  total: number;
-  limit: number;
-  offset: number;
-}

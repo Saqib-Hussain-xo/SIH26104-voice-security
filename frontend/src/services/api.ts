@@ -1,4 +1,4 @@
-import { AnalyzeResponse, HealthStatus, ModelStatus, ReportListResponse } from '../types';
+import { AnalyzeResponse, HealthStatus, ModelStatus } from '../types';
 
 const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL
   ? `${(import.meta as any).env.VITE_API_BASE_URL.replace(/\/$/, '')}/api/v1`
@@ -37,12 +37,6 @@ export async function analyzeAudio(
     throw new Error(errorData.error || `HTTP ${res.status}`);
   }
 
-  return res.json();
-}
-
-export async function fetchReports(limit: number = 20, offset: number = 0): Promise<ReportListResponse> {
-  const res = await fetch(`${API_BASE}/reports?limit=${limit}&offset=${offset}`);
-  if (!res.ok) throw new Error('Failed to fetch reports');
   return res.json();
 }
 

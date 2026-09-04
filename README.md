@@ -147,7 +147,7 @@ The React dashboard provides:
 - Speaker similarity information.
 - Explainable factor breakdown.
 - Recommended action.
-- Historical scan table backed by SQLite reports.
+- A focused input-to-result workflow without operational telemetry or audit-table UI.
 
 ## 5. API Endpoints
 
@@ -252,7 +252,7 @@ Open the dashboard at:
 http://localhost:5173
 ```
 
-### Step 5: Use the dashboard
+### Step 5: Analyze audio
 
 1. Open **Audio File** and choose an audio file, or open **Live Microphone** and record your voice.
 2. Submit the recording for analysis.

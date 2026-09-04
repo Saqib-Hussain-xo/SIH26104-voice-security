@@ -141,50 +141,6 @@ body {
   background-color: currentColor;
 }
 
-/* Operational Metrics Bar */
-.ops-metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
-}
-
-.ops-card {
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: 0.375rem;
-  padding: 0.875rem 1rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.ops-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  color: var(--text-dim);
-  font-size: 0.75rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-family: var(--font-mono);
-}
-
-.ops-val {
-  font-size: 1.25rem;
-  font-weight: 700;
-  margin-top: 0.375rem;
-  letter-spacing: -0.02em;
-}
-
-.ops-sub {
-  font-size: 0.6875rem;
-  color: var(--text-muted);
-  margin-top: 0.25rem;
-  font-family: var(--font-mono);
-}
-
 /* Main Layout Grid */
 .main-grid {
   display: grid;
@@ -436,72 +392,6 @@ body {
 
 .reason-item.increases_uncertainty {
   border-left-color: var(--color-warning);
-}
-
-/* History Table */
-.table-container {
-  overflow-x: auto;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.8125rem;
-  text-align: left;
-}
-
-th {
-  color: var(--text-dim);
-  font-weight: 600;
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 0.625rem 0.75rem;
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-td {
-  padding: 0.625rem 0.75rem;
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-tr:hover {
-  background-color: var(--bg-surface-elevated);
-}
-
-.badge {
-  display: inline-block;
-  padding: 0.125rem 0.45rem;
-  border-radius: 0.25rem;
-  font-size: 0.6875rem;
-  font-family: var(--font-mono);
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.badge-LOW {
-  background-color: var(--color-safe-bg);
-  color: var(--color-safe);
-  border: 1px solid var(--color-safe-border);
-}
-
-.badge-MEDIUM {
-  background-color: var(--color-warning-bg);
-  color: var(--color-warning);
-  border: 1px solid var(--color-warning-border);
-}
-
-.badge-HIGH {
-  background-color: var(--color-high-bg);
-  color: var(--color-high);
-  border: 1px solid var(--color-high-border);
-}
-
-.badge-CRITICAL {
-  background-color: var(--color-critical-bg);
-  color: var(--color-critical);
-  border: 1px solid var(--color-critical-border);
 }
 
 .spinner {

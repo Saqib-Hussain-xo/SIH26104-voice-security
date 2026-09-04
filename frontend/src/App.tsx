@@ -3,10 +3,9 @@ import { Header } from './components/Header';
 import { AudioUpload } from './components/AudioUpload';
 import { MicRecorder } from './components/MicRecorder';
 import { AnalysisResult } from './components/AnalysisResult';
-import { ReportHistory } from './components/ReportHistory';
-import { fetchHealth, analyzeAudio, fetchReports, enrollSpeaker } from './services/api';
-import { HealthStatus, AnalyzeResponse, ReportSummary } from './types';
-import { Upload, Mic, UserCheck, ShieldAlert, FileText, Activity, CheckCircle2 } from 'lucide-react';
+import { fetchHealth, analyzeAudio, enrollSpeaker } from './services/api';
+import { HealthStatus, AnalyzeResponse } from './types';
+import { Upload, Mic, UserCheck } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [health, setHealth] = useState<HealthStatus | null>(null);
@@ -14,9 +13,6 @@ export const App: React.FC = () => {
   const [analysisResult, setAnalysisResult] = useState<AnalyzeResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [reports, setReports] = useState<ReportSummary[]>([]);
-  const [totalCount, setTotalCount] = useState<number>(0);
-  const [historyLoading, setHistoryLoading] = useState<boolean>(false);
 
   const [enrollSpeakerId, setEnrollSpeakerId] = useState<string>('');
   const [enrollFile, setEnrollFile] = useState<File | null>(null);
@@ -32,22 +28,8 @@ export const App: React.FC = () => {
     }
   };
 
-  const loadReportHistory = async () => {
-    setHistoryLoading(true);
-    try {
-      const data = await fetchReports(50, 0);
-      setReports(data.reports);
-      setTotalCount(data.total);
-    } catch (err) {
-      console.error('Failed to load reports:', err);
-    } finally {
-      setHistoryLoading(false);
-    }
-  };
-
   useEffect(() => {
     loadHealth();
-    loadReportHistory();
   }, []);
 
   const handleAnalyze = async (file: File, speakerId?: string) => {
@@ -56,7 +38,6 @@ export const App: React.FC = () => {
     try {
       const res = await analyzeAudio(file, file.name, speakerId);
       setAnalysisResult(res);
-      loadReportHistory();
     } catch (err: any) {
       setError(err.message || 'Audio analysis failed.');
     } finally {
@@ -80,56 +61,9 @@ export const App: React.FC = () => {
     }
   };
 
-  const highRiskCount = reports.filter((r) => r.risk_level === 'HIGH' || r.risk_level === 'CRITICAL').length;
-
   return (
     <div className="container">
       <Header health={health} />
-
-      {/* Operational Telemetry Metrics */}
-      <div className="ops-metrics-grid">
-        <div className="ops-card">
-          <div className="ops-header">
-            <span>Scan Volume</span>
-            <FileText size={14} />
-          </div>
-          <div className="ops-val">{totalCount}</div>
-          <div className="ops-sub">Total Audited Events</div>
-        </div>
-
-        <div className="ops-card">
-          <div className="ops-header">
-            <span style={{ color: highRiskCount > 0 ? 'var(--color-critical)' : 'var(--text-dim)' }}>Threat Intercepts</span>
-            <ShieldAlert size={14} style={{ color: highRiskCount > 0 ? 'var(--color-critical)' : 'var(--text-dim)' }} />
-          </div>
-          <div className="ops-val" style={{ color: highRiskCount > 0 ? 'var(--color-critical)' : 'var(--text-main)' }}>
-            {highRiskCount}
-          </div>
-          <div className="ops-sub">High / Critical Incidents</div>
-        </div>
-
-        <div className="ops-card">
-          <div className="ops-header">
-            <span>AASIST Core</span>
-            <Activity size={14} />
-          </div>
-          <div className="ops-val" style={{ fontSize: '1rem', color: health?.spoof_detector_loaded ? 'var(--color-safe)' : 'var(--text-dim)' }}>
-            {health?.spoof_detector_loaded ? 'ONLINE (LA-2019)' : 'INITIALIZING'}
-          </div>
-          <div className="ops-sub">Raw Spectral Anti-Spoofing</div>
-        </div>
-
-        <div className="ops-card">
-          <div className="ops-header">
-            <span>ECAPA-TDNN</span>
-            <CheckCircle2 size={14} />
-          </div>
-          <div className="ops-val" style={{ fontSize: '1rem', color: health?.speaker_verifier_loaded ? 'var(--color-safe)' : 'var(--color-warning)' }}>
-            {health?.speaker_verifier_loaded ? 'ACTIVE (VoxCeleb)' : 'STANDBY (Lazy)'}
-          </div>
-          <div className="ops-sub">192-dim Voice Biometrics</div>
-        </div>
-      </div>
 
       <div className="main-grid">
         <div className="card">
@@ -211,14 +145,7 @@ export const App: React.FC = () => {
         </div>
 
         <AnalysisResult result={analysisResult} loading={loading} error={error} />
-
-        <ReportHistory reports={reports} loading={historyLoading} onRefresh={loadReportHistory} />
       </div>
-
-      {/* Forensic Scope Notice */}
-      <footer style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid var(--border-subtle)', textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-        <p>SIH26104 Operational Scope: Analyzes browser recorded and uploaded audio signals for synthetic cloning and speaker mismatch. Does not operate at baseband / cellular GSM layers.</p>
-      </footer>
     </div>
   );
 };
