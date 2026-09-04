@@ -1,12 +1,18 @@
 import os
+from pathlib import Path
 from typing import Optional, List
 from dotenv import load_dotenv
 
-load_dotenv()
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Support loading .env from backend directory or project root
+load_dotenv(BASE_DIR / ".env")
+load_dotenv(BASE_DIR.parent / ".env")
 
 
 class Settings:
     def __init__(self):
+        self.base_dir = BASE_DIR
         self.app_env = os.getenv("APP_ENV", "development")
         self.backend_host = os.getenv("BACKEND_HOST", "127.0.0.1")
         self.backend_port = int(os.getenv("BACKEND_PORT", "8000"))
@@ -20,8 +26,10 @@ class Settings:
         self.aasist_model_id = os.getenv("AASIST_MODEL_ID", "SpeechAntiSpoofingBenchmarks/AASIST")
         self.aasist_revision = os.getenv("AASIST_REVISION")
 
-        self.database_path = os.getenv("DATABASE_PATH", "data/analysis.db")
-        self.temp_dir = os.getenv("TEMP_DIR", "temp")
+        self.database_path = os.getenv("DATABASE_PATH", str(BASE_DIR / "data" / "analysis.db"))
+        self.temp_dir = os.getenv("TEMP_DIR", str(BASE_DIR / "temp"))
+        self.enrollment_dir = os.getenv("ENROLLMENT_DIR", str(BASE_DIR / "data" / "enrollments"))
+        self.pretrained_models_dir = os.getenv("PRETRAINED_MODELS_DIR", str(BASE_DIR / "pretrained_models"))
 
         cors_origins = os.getenv("CORS_ORIGINS")
         if cors_origins:
@@ -36,3 +44,5 @@ settings = Settings()
 
 os.makedirs(os.path.dirname(settings.database_path), exist_ok=True)
 os.makedirs(settings.temp_dir, exist_ok=True)
+os.makedirs(settings.enrollment_dir, exist_ok=True)
+os.makedirs(settings.pretrained_models_dir, exist_ok=True)

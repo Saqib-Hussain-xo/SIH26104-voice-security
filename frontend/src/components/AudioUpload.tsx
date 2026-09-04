@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Upload, FileAudio, ArrowRight } from 'lucide-react';
+import { UploadCloud, ArrowRight, FileAudio, UserCheck } from 'lucide-react';
 
 interface AudioUploadProps {
   onAnalyze: (file: File, speakerId?: string) => void;
@@ -52,49 +52,41 @@ export const AudioUpload: React.FC<AudioUploadProps> = ({ onAnalyze, loading }) 
           style={{ display: 'none' }}
         />
 
-        <Upload className="upload-icon" />
+        <UploadCloud className="upload-icon" />
         {selectedFile ? (
           <div>
-            <p style={{ fontWeight: 600, color: 'var(--color-primary)' }}>{selectedFile.name}</p>
-            <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-              {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+            <p style={{ fontWeight: 600, color: 'var(--color-primary)', fontSize: '0.875rem' }}>{selectedFile.name}</p>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', marginTop: '0.25rem' }}>
+              {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB | Ready for analysis
             </p>
           </div>
         ) : (
           <div>
-            <p style={{ fontWeight: 500 }}>Drop audio file here or click to browse</p>
-            <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-              Supports WAV, MP3, M4A, FLAC, OGG (16kHz mono recommended)
+            <p style={{ fontWeight: 600, fontSize: '0.875rem' }}>Drop voice recording or select file</p>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.35rem' }}>
+              WAV, MP3, FLAC, M4A accepted (processed to 16kHz mono internally)
             </p>
           </div>
         )}
       </div>
 
-      <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+      <div style={{ marginTop: '1rem', display: 'flex', gap: '0.625rem', alignItems: 'center' }}>
         <input
           type="text"
-          placeholder="Optional Speaker ID (for verification)"
+          className="input-field"
+          placeholder="Target Speaker ID for biometric matching (Optional)"
           value={speakerId}
           onChange={(e) => setSpeakerId(e.target.value)}
-          style={{
-            flex: 1,
-            padding: '0.625rem',
-            borderRadius: '0.375rem',
-            border: '1px solid var(--border-color)',
-            backgroundColor: 'rgba(0, 0, 0, 0.2)',
-            color: 'var(--text-main)',
-            fontSize: '0.875rem',
-          }}
+          style={{ flex: 1 }}
         />
 
         <button
           className="btn btn-primary"
           onClick={handleSubmit}
           disabled={!selectedFile || loading}
-          style={{ opacity: selectedFile && !loading ? 1 : 0.5 }}
         >
-          {loading ? 'Analyzing...' : 'Analyze Audio'}
-          <ArrowRight size={16} />
+          {loading ? 'Analyzing...' : 'Run Security Scan'}
+          <ArrowRight size={15} />
         </button>
       </div>
     </div>

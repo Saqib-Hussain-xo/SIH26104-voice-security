@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldAlert, ShieldCheck, Cpu, AlertTriangle, FileText, AlertCircle } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, Cpu, AlertTriangle, FileText, CheckCircle2, UserCheck, Activity, Terminal } from 'lucide-react';
 import { AnalyzeResponse } from '../types';
 
 interface AnalysisResultProps {
@@ -11,35 +11,42 @@ interface AnalysisResultProps {
 export const AnalysisResult: React.FC<AnalysisResultProps> = ({ result, loading, error }) => {
   if (loading) {
     return (
-      <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '320px' }}>
+      <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '340px' }}>
         <div className="spinner"></div>
-        <p style={{ fontWeight: 600, marginTop: '1rem' }}>Running Acoustic & Intent Security Analysis...</p>
-        <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-          AASIST Voice Anti-Spoofing → Whisper ASR Transcription → Social Engineering Threat Detection
+        <p style={{ fontWeight: 600, fontSize: '0.9375rem', marginTop: '1rem', color: 'var(--text-main)' }}>
+          Executing Voice Security Analysis Pipeline
         </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>
+          <div>[1/4] Normalizing & Resampling audio to 16kHz mono...</div>
+          <div>[2/4] AASIST Raw Waveform Graph Spectral Anti-Spoofing...</div>
+          <div>[3/4] ECAPA-TDNN Speaker Identity Cosine Verification...</div>
+          <div>[4/4] Multi-Signal Explainable Threat Evaluation...</div>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="card" style={{ borderLeft: '4px solid var(--color-critical)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--color-critical)' }}>
-          <AlertTriangle size={24} />
-          <h3 style={{ fontWeight: 600 }}>Analysis Request Error</h3>
+      <div className="card" style={{ borderLeft: '3px solid var(--color-critical)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', color: 'var(--color-critical)' }}>
+          <AlertTriangle size={20} />
+          <h3 style={{ fontWeight: 600, fontSize: '0.9375rem' }}>Analysis Pipeline Exception</h3>
         </div>
-        <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>{error}</p>
+        <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '0.5rem', fontFamily: 'var(--font-mono)' }}>
+          {error}
+        </p>
       </div>
     );
   }
 
   if (!result) {
     return (
-      <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '320px', textAlign: 'center', color: 'var(--text-muted)' }}>
-        <Cpu size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
-        <p style={{ fontWeight: 500 }}>No Analysis Results Yet</p>
-        <p style={{ fontSize: '0.8125rem', marginTop: '0.25rem' }}>
-          Upload an audio file or record via microphone to analyze acoustic anti-spoofing and social engineering threat signals.
+      <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '340px', textAlign: 'center' }}>
+        <Cpu size={40} style={{ color: 'var(--text-dim)', marginBottom: '0.875rem' }} />
+        <p style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--text-main)' }}>Awaiting Audio Sample</p>
+        <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '0.25rem', maxWidth: '380px' }}>
+          Select an audio file or record via browser microphone to execute deep acoustic anti-spoofing and speaker identity verification.
         </p>
       </div>
     );
@@ -47,102 +54,125 @@ export const AnalysisResult: React.FC<AnalysisResultProps> = ({ result, loading,
 
   const { risk_assessment, spoof_detection, speaker_verification, semantic_threat_analysis, processing_time_ms, request_id } = result;
 
+  const isCritical = risk_assessment.risk_level === 'CRITICAL';
+  const isHigh = risk_assessment.risk_level === 'HIGH';
+  const isSafe = risk_assessment.risk_level === 'LOW';
+
   return (
     <div className="card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.875rem' }}>
         <h3 className="card-title" style={{ margin: 0 }}>
-          {risk_assessment.risk_level === 'LOW' ? (
-            <ShieldCheck style={{ color: 'var(--color-low)' }} />
+          {isSafe ? (
+            <ShieldCheck size={18} style={{ color: 'var(--color-safe)' }} />
           ) : (
-            <ShieldAlert style={{ color: `var(--color-${risk_assessment.risk_level.toLowerCase()})` }} />
+            <ShieldAlert size={18} style={{ color: isCritical ? 'var(--color-critical)' : 'var(--color-high)' }} />
           )}
-          System Risk Assessment
+          Forensic Assessment Verdict
         </h3>
-        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Req ID: {request_id.slice(0, 8)} | {processing_time_ms}ms</span>
+        <span style={{ fontSize: '0.6875rem', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>
+          TRACE: {request_id.slice(0, 8)} | LATENCY: {processing_time_ms}ms
+        </span>
       </div>
 
-      <div className="risk-gauge-container">
-        <div className={`risk-level-badge risk-level-${risk_assessment.risk_level}`}>
-          {risk_assessment.risk_level} RISK
+      {/* Decision Banner */}
+      <div className={`risk-banner risk-${risk_assessment.risk_level}`}>
+        <div>
+          <div className="risk-title">
+            {isSafe ? 'SECURITY CLEARANCE: SAFE' : `${risk_assessment.risk_level} RISK THREAT DETECTED`}
+          </div>
+          <div style={{ fontSize: '0.8125rem', marginTop: '0.25rem', opacity: 0.95 }}>
+            {risk_assessment.recommended_action}
+          </div>
         </div>
-        <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-main)', textAlign: 'center' }}>
-          {risk_assessment.recommended_action}
-        </p>
-      </div>
-
-      <div className="metrics-grid">
-        <div className="metric-box">
-          <div className="metric-label">Overall System Risk</div>
-          <div className="metric-val" style={{ color: `var(--color-${risk_assessment.risk_level.toLowerCase()})` }}>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'var(--font-mono)' }}>
+            System Risk
+          </div>
+          <div className="risk-score-display">
             {(risk_assessment.risk_score * 100).toFixed(0)}%
           </div>
         </div>
+      </div>
 
-        <div className="metric-box">
-          <div className="metric-label">Acoustic Risk (AASIST)</div>
-          <div className="metric-val" style={{ color: spoof_detection.label === 'bona_fide' ? 'var(--color-low)' : 'var(--color-critical)' }}>
-            {risk_assessment.acoustic_risk_score !== undefined ? `${(risk_assessment.acoustic_risk_score * 100).toFixed(0)}%` : (spoof_detection.label === 'bona_fide' ? 'Low' : 'High')}
+      {/* Primary Model Signals Grid */}
+      <div className="forensic-grid">
+        <div className="forensic-card">
+          <div className="forensic-label">Acoustic Spoof</div>
+          <div className="forensic-value" style={{ color: spoof_detection.label === 'bona_fide' ? 'var(--color-safe)' : 'var(--color-critical)' }}>
+            {spoof_detection.label === 'bona_fide' ? 'BONA FIDE' : 'SYNTHETIC SPOOF'}
+          </div>
+          <div style={{ fontSize: '0.6875rem', color: 'var(--text-dim)', marginTop: '0.25rem', fontFamily: 'var(--font-mono)' }}>
+            Logit: {spoof_detection.raw_score.toFixed(3)}
           </div>
         </div>
 
-        <div className="metric-box">
-          <div className="metric-label">Semantic Threat Risk</div>
-          <div className="metric-val" style={{ color: (semantic_threat_analysis?.semantic_risk_score ?? 0) > 0.3 ? 'var(--color-critical)' : 'var(--color-low)' }}>
-            {semantic_threat_analysis ? `${(semantic_threat_analysis.semantic_risk_score * 100).toFixed(0)}%` : '0%'}
+        <div className="forensic-card">
+          <div className="forensic-label">Speaker Identity</div>
+          <div className="forensic-value" style={{
+            color: !speaker_verification.enabled
+              ? 'var(--text-dim)'
+              : speaker_verification.verified
+              ? 'var(--color-safe)'
+              : 'var(--color-critical)'
+          }}>
+            {!speaker_verification.enabled
+              ? 'UNSPECIFIED'
+              : speaker_verification.verified
+              ? 'VERIFIED MATCH'
+              : 'MISMATCH / UNKNOWN'}
+          </div>
+          <div style={{ fontSize: '0.6875rem', color: 'var(--text-dim)', marginTop: '0.25rem', fontFamily: 'var(--font-mono)' }}>
+            {speaker_verification.enabled && typeof speaker_verification.similarity === 'number'
+              ? `Sim: ${speaker_verification.similarity.toFixed(3)} (≥${speaker_verification.threshold})`
+              : 'No enrolled ID'}
+          </div>
+        </div>
+
+        <div className="forensic-card">
+          <div className="forensic-label">Inference Model</div>
+          <div className="forensic-value" style={{ color: 'var(--text-main)', fontSize: '0.8125rem' }}>
+            AASIST + ECAPA
+          </div>
+          <div style={{ fontSize: '0.6875rem', color: 'var(--text-dim)', marginTop: '0.25rem', fontFamily: 'var(--font-mono)' }}>
+            Single-Window 3.0s
           </div>
         </div>
       </div>
 
-      {/* Speech Transcript Section */}
-      {semantic_threat_analysis && (
-        <div style={{ marginBottom: '1.25rem', padding: '0.875rem', backgroundColor: 'rgba(0,0,0,0.25)', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
-          <div style={{ fontWeight: 600, color: 'var(--color-primary)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <FileText size={16} /> ASR Speech Transcript ({semantic_threat_analysis.asr_model || 'Whisper'})
+      {/* Transcript & Semantic Threat Section (if present) */}
+      {semantic_threat_analysis && semantic_threat_analysis.transcript && (
+        <div style={{ marginBottom: '1.25rem', padding: '0.75rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: '0.25rem', border: '1px solid var(--border-subtle)' }}>
+          <div style={{ fontWeight: 600, fontSize: '0.75rem', color: 'var(--color-primary)', marginBottom: '0.375rem', display: 'flex', alignItems: 'center', gap: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'var(--font-mono)' }}>
+            <Terminal size={14} /> Speech Content Transcription (Whisper ASR)
           </div>
-          <p style={{ fontSize: '0.875rem', fontStyle: semantic_threat_analysis.transcript ? 'normal' : 'italic', color: semantic_threat_analysis.transcript ? 'white' : 'var(--text-muted)', margin: 0, padding: '0.5rem', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: '0.375rem' }}>
-            {semantic_threat_analysis.transcript ? `"${semantic_threat_analysis.transcript}"` : 'No speech detected or transcribed.'}
+          <p style={{ fontSize: '0.8125rem', color: 'var(--text-main)', margin: 0, fontStyle: 'italic' }}>
+            "{semantic_threat_analysis.transcript}"
           </p>
 
-          {semantic_threat_analysis.detected_indicators && semantic_threat_analysis.detected_indicators.length > 0 ? (
-            <div style={{ marginTop: '0.75rem' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-critical)', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <AlertCircle size={14} /> Social Engineering Threat Indicators Detected:
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                {semantic_threat_analysis.detected_indicators.map((ind, i) => (
-                  <span key={i} style={{ padding: '0.25rem 0.5rem', borderRadius: '0.25rem', backgroundColor: 'rgba(239, 68, 68, 0.2)', border: '1px solid var(--color-critical)', color: '#fca5a5', fontSize: '0.75rem', fontWeight: 500 }}>
-                    ⚠️ {ind.category}: <em>{ind.matched_terms.join(', ')}</em>
-                  </span>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--color-low)' }}>
-              ✓ No social engineering threat keywords or patterns detected in transcript.
+          {semantic_threat_analysis.detected_indicators && semantic_threat_analysis.detected_indicators.length > 0 && (
+            <div style={{ marginTop: '0.625rem', display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+              {semantic_threat_analysis.detected_indicators.map((ind, i) => (
+                <span key={i} style={{ padding: '0.2rem 0.45rem', borderRadius: '0.2rem', backgroundColor: 'var(--color-critical-bg)', border: '1px solid var(--color-critical-border)', color: 'var(--color-critical)', fontSize: '0.6875rem', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                  THREAT DETECTED: {ind.category} ({ind.matched_terms.join(', ')})
+                </span>
+              ))}
             </div>
           )}
         </div>
       )}
 
-      {speaker_verification.enabled && (
-        <div style={{ marginBottom: '1.25rem', padding: '0.75rem', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '0.375rem', fontSize: '0.8125rem' }}>
-          <div style={{ fontWeight: 600, color: 'var(--color-primary)', marginBottom: '0.25rem' }}>
-            Speaker Verification (ECAPA-TDNN)
-          </div>
-          <div><strong>Cosine Similarity:</strong> {speaker_verification.similarity !== null && speaker_verification.similarity !== undefined ? speaker_verification.similarity.toFixed(4) : 'N/A'} (Threshold: {speaker_verification.threshold})</div>
-          <div><strong>Verified Identity:</strong> {speaker_verification.verified ? 'Matched' : 'Unverified / Mismatch'}</div>
-        </div>
-      )}
-
+      {/* Explainable Decision Factors */}
       <div>
-        <h4 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-muted)' }}>
-          Risk Assessment Factors
-        </h4>
+        <div style={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>
+          Why Did The System Reach This Conclusion?
+        </div>
         <ul className="reasons-list">
           {risk_assessment.reasons.map((r, idx) => (
             <li key={idx} className={`reason-item ${r.impact}`}>
-              <div style={{ fontWeight: 500 }}>{r.reason}</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Factor: {r.factor} ({r.status})</div>
+              <div style={{ fontWeight: 500, color: 'var(--text-main)' }}>{r.reason}</div>
+              <div style={{ fontSize: '0.6875rem', color: 'var(--text-dim)', marginTop: '0.125rem', fontFamily: 'var(--font-mono)' }}>
+                Signal: {r.factor.toUpperCase()} → Status: {r.status}
+              </div>
             </li>
           ))}
         </ul>

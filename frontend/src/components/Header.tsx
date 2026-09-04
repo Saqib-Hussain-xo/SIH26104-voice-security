@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, Server, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, Cpu } from 'lucide-react';
 import { HealthStatus } from '../types';
 
 interface HeaderProps {
@@ -12,10 +12,14 @@ export const Header: React.FC<HeaderProps> = ({ health }) => {
   return (
     <header className="app-header">
       <div className="logo-section">
-        <Shield className="logo-icon" />
-        <div>
-          <h1 className="app-title">SIH26104 Voice Security</h1>
-          <p className="app-subtitle">Real-Time Detection and Prevention of Voice Cloning Impersonation</p>
+        <div className="logo-icon-badge">
+          <ShieldCheck size={22} />
+        </div>
+        <div className="app-title-group">
+          <div className="app-title">
+            VOICE DEFENDER <span className="app-tag">SIH26104</span>
+          </div>
+          <p className="app-subtitle">Real-Time Voice Anti-Spoofing & Impersonation Analysis Platform</p>
         </div>
       </div>
 
@@ -23,8 +27,8 @@ export const Header: React.FC<HeaderProps> = ({ health }) => {
         <span className="status-dot"></span>
         <span>
           {health
-            ? `Backend ${health.status.toUpperCase()} | AASIST ${health.spoof_detector_loaded ? 'Active' : 'Offline'}`
-            : 'Connecting...'}
+            ? `ENGINE ${health.status.toUpperCase()} | AASIST ${health.spoof_detector_loaded ? 'READY' : 'OFFLINE'} | ECAPA ${health.speaker_verifier_loaded ? 'READY' : 'STANDBY'}`
+            : 'ESTABLISHING LINK...'}
         </span>
       </div>
     </header>

@@ -86,38 +86,48 @@ export const App: React.FC = () => {
     <div className="container">
       <Header health={health} />
 
-      {/* Dashboard Stats Overview */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div className="card" style={{ padding: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
-            <FileText size={16} /> Total Analyses
+      {/* Operational Telemetry Metrics */}
+      <div className="ops-metrics-grid">
+        <div className="ops-card">
+          <div className="ops-header">
+            <span>Scan Volume</span>
+            <FileText size={14} />
           </div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, marginTop: '0.25rem' }}>{totalCount}</div>
+          <div className="ops-val">{totalCount}</div>
+          <div className="ops-sub">Total Audited Events</div>
         </div>
 
-        <div className="card" style={{ padding: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-critical)', fontSize: '0.8125rem' }}>
-            <ShieldAlert size={16} /> High Risk Analyses
+        <div className="ops-card">
+          <div className="ops-header">
+            <span style={{ color: highRiskCount > 0 ? 'var(--color-critical)' : 'var(--text-dim)' }}>Threat Intercepts</span>
+            <ShieldAlert size={14} style={{ color: highRiskCount > 0 ? 'var(--color-critical)' : 'var(--text-dim)' }} />
           </div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, marginTop: '0.25rem', color: 'var(--color-critical)' }}>{highRiskCount}</div>
+          <div className="ops-val" style={{ color: highRiskCount > 0 ? 'var(--color-critical)' : 'var(--text-main)' }}>
+            {highRiskCount}
+          </div>
+          <div className="ops-sub">High / Critical Incidents</div>
         </div>
 
-        <div className="card" style={{ padding: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-primary)', fontSize: '0.8125rem' }}>
-            <Activity size={16} /> AASIST Model
+        <div className="ops-card">
+          <div className="ops-header">
+            <span>AASIST Core</span>
+            <Activity size={14} />
           </div>
-          <div style={{ fontSize: '0.9375rem', fontWeight: 600, marginTop: '0.35rem', color: 'var(--color-low)' }}>
-            {health?.spoof_detector_loaded ? 'Active (ASVspoof2019)' : 'Offline'}
+          <div className="ops-val" style={{ fontSize: '1rem', color: health?.spoof_detector_loaded ? 'var(--color-safe)' : 'var(--text-dim)' }}>
+            {health?.spoof_detector_loaded ? 'ONLINE (LA-2019)' : 'INITIALIZING'}
           </div>
+          <div className="ops-sub">Raw Spectral Anti-Spoofing</div>
         </div>
 
-        <div className="card" style={{ padding: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-primary)', fontSize: '0.8125rem' }}>
-            <CheckCircle2 size={16} /> ECAPA-TDNN Model
+        <div className="ops-card">
+          <div className="ops-header">
+            <span>ECAPA-TDNN</span>
+            <CheckCircle2 size={14} />
           </div>
-          <div style={{ fontSize: '0.9375rem', fontWeight: 600, marginTop: '0.35rem', color: 'var(--color-low)' }}>
-            {health?.speaker_verifier_loaded ? 'Active (VoxCeleb)' : 'Initialized (Lazy)'}
+          <div className="ops-val" style={{ fontSize: '1rem', color: health?.speaker_verifier_loaded ? 'var(--color-safe)' : 'var(--color-warning)' }}>
+            {health?.speaker_verifier_loaded ? 'ACTIVE (VoxCeleb)' : 'STANDBY (Lazy)'}
           </div>
+          <div className="ops-sub">192-dim Voice Biometrics</div>
         </div>
       </div>
 
@@ -128,22 +138,22 @@ export const App: React.FC = () => {
               className={`tab-btn ${activeTab === 'upload' ? 'active' : ''}`}
               onClick={() => setActiveTab('upload')}
             >
-              <Upload size={16} style={{ display: 'inline', marginRight: '0.35rem' }} />
-              Audio Upload
+              <Upload size={14} />
+              Audio File
             </button>
             <button
               className={`tab-btn ${activeTab === 'mic' ? 'active' : ''}`}
               onClick={() => setActiveTab('mic')}
             >
-              <Mic size={16} style={{ display: 'inline', marginRight: '0.35rem' }} />
-              Microphone
+              <Mic size={14} />
+              Live Microphone
             </button>
             <button
               className={`tab-btn ${activeTab === 'enroll' ? 'active' : ''}`}
               onClick={() => setActiveTab('enroll')}
             >
-              <UserCheck size={16} style={{ display: 'inline', marginRight: '0.35rem' }} />
-              Speaker Enrollment
+              <UserCheck size={14} />
+              Speaker Registry
             </button>
           </div>
 
@@ -157,39 +167,44 @@ export const App: React.FC = () => {
 
           {activeTab === 'enroll' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-                Enroll a clean reference voice clip to enable speaker verification matching.
+              <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+                Register a verified reference voice profile into the secure local biometrics vault (ECAPA-TDNN 192-dim embedding).
               </p>
               <input
                 type="text"
-                placeholder="Speaker ID (e.g. user_101)"
+                className="input-field"
+                placeholder="Unique Speaker Identifier (e.g. executive_user_42)"
                 value={enrollSpeakerId}
                 onChange={(e) => setEnrollSpeakerId(e.target.value)}
-                style={{
-                  padding: '0.625rem',
-                  borderRadius: '0.375rem',
-                  border: '1px solid var(--border-color)',
-                  backgroundColor: 'rgba(0,0,0,0.2)',
-                  color: 'white',
-                }}
               />
-              <input
-                type="file"
-                accept="audio/*"
-                onChange={(e) => e.target.files && setEnrollFile(e.target.files[0])}
-                style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}
-              />
+              <div style={{ border: '1px dashed var(--border-subtle)', padding: '0.875rem', borderRadius: '0.25rem', backgroundColor: 'var(--bg-surface-subtle)' }}>
+                <input
+                  type="file"
+                  accept="audio/*,.wav,.mp3,.flac"
+                  onChange={(e) => e.target.files && setEnrollFile(e.target.files[0])}
+                  style={{ fontSize: '0.8125rem', color: 'var(--text-dim)', width: '100%' }}
+                />
+              </div>
               <button
                 className="btn btn-primary"
                 onClick={handleEnroll}
                 disabled={!enrollFile || !enrollSpeakerId || enrollLoading}
               >
-                {enrollLoading ? 'Enrolling Voice...' : 'Enroll Speaker Identity'}
+                {enrollLoading ? 'Generating Biometric Embedding...' : 'Enroll Voice Identity'}
               </button>
               {enrollMessage && (
-                <p style={{ fontSize: '0.875rem', marginTop: '0.5rem', fontWeight: 500 }}>
+                <div style={{
+                  fontSize: '0.8125rem',
+                  marginTop: '0.35rem',
+                  padding: '0.5rem 0.75rem',
+                  borderRadius: '0.25rem',
+                  backgroundColor: enrollMessage.includes('✅') ? 'var(--color-safe-bg)' : 'var(--color-critical-bg)',
+                  border: `1px solid ${enrollMessage.includes('✅') ? 'var(--color-safe-border)' : 'var(--color-critical-border)'}`,
+                  color: enrollMessage.includes('✅') ? 'var(--color-safe)' : 'var(--color-critical)',
+                  fontFamily: 'var(--font-mono)'
+                }}>
                   {enrollMessage}
-                </p>
+                </div>
               )}
             </div>
           )}
@@ -200,9 +215,9 @@ export const App: React.FC = () => {
         <ReportHistory reports={reports} loading={historyLoading} onRefresh={loadReportHistory} />
       </div>
 
-      {/* SIH Scope Disclaimer */}
-      <footer style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)', textAlign: 'center', fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-        <p>Disclaimer: This prototype analyzes supplied/recorded audio and does not intercept ordinary cellular calls.</p>
+      {/* Forensic Scope Notice */}
+      <footer style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid var(--border-subtle)', textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+        <p>SIH26104 Operational Scope: Analyzes browser recorded and uploaded audio signals for synthetic cloning and speaker mismatch. Does not operate at baseband / cellular GSM layers.</p>
       </footer>
     </div>
   );
